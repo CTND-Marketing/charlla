@@ -1,0 +1,32 @@
+name: 리포트 자동 업데이트
+
+on:
+  push:
+    paths:
+      - 'data/**'   # data 폴더 안 파일이 바뀌면 자동 실행
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 저장소 가져오기
+        uses: actions/checkout@v4
+
+      - name: Python 설정
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 필요 라이브러리 설치
+        run: pip install openpyxl
+
+      - name: 데이터 주입 실행
+        run: python inject.py
+
+      - name: 완성된 index.html 커밋 & 푸시
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add index.html
+          git commit -m "리포트 자동 업데이트 $(date '+%Y-%m-%d')" || echo "변경사항 없음"
+          git push
