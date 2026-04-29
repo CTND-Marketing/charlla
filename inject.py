@@ -109,7 +109,16 @@ for row in list(csv.reader(io.StringIO(read_euckr('data/events.csv'))))[1:]:
 # Metabase xlsx
 monthSu = {1:0,2:0,3:0,4:0}
 monthPaid = {1:0,2:0,3:0,4:0}
-weekSu = {1:0,2:0,3:0}
+weekSu = {1:0,2:0,3:0,4:0}
+
+# config의 lastUpdated 기준으로 현재 월 파악
+try:
+    report_date = datetime.fromisoformat(last_updated)
+    report_month = report_date.month
+except:
+    report_date = datetime(2026, 4, 20)
+    report_month = 4
+
 try:
     wb = load_workbook('data/metabase.xlsx', read_only=True, data_only=True)
     ws = wb.active
@@ -126,13 +135,15 @@ try:
             try: d = datetime.fromisoformat(str(raw))
             except: continue
         mo = d.month
-        if mo < 1 or mo > 4: continue
+        if mo < 1 or mo > report_month: continue
         monthSu[mo] += 1
         if paid_idx is not None and str(row[paid_idx]).strip().upper() == 'Y': monthPaid[mo] += 1
-        if mo == 4:
-            if d.day <= 8: weekSu[1] += 1
+        # 당월 주차 분기 (1주: 1~8, 2주: 9~15, 3주: 16~22, 4주: 23~말일)
+        if mo == report_month:
+            if d.day <= 8:    weekSu[1] += 1
             elif d.day <= 15: weekSu[2] += 1
-            else: weekSu[3] += 1
+            elif d.day <= 22: weekSu[3] += 1
+            else:             weekSu[4] += 1
 except Exception as e:
     print(f"Metabase 처리 오류: {e}")
 
@@ -144,8 +155,11 @@ total_ac = sum(d['ac'] for _,_,d in all_data)
 total_po = sum(d['po'] for _,_,d in all_data)
 total_su = sum(d['su'] for _,_,d in all_data)
 ga4_cvr  = round(total_su/total_v*100, 2) if total_v else 0
-mb4      = monthSu[4]
-mb_cvr4  = round(mb4/total_v*100, 2) if total_v else 0
+mb_cur   = monthSu[report_month]  # 현재 월 MB 가입
+mb_cvr_cur = round(mb_cur/total_v*100, 2) if total_v else 0
+# 하위 호환
+mb4      = mb_cur
+mb_cvr4  = mb_cvr_cur
 
 def cvr_type(v, su):
     if v == 0: return 'null'
@@ -275,13 +289,9 @@ for wid, wval in [('wv1', w1), ('wv2', w2), ('wv3', w3), ('wv4', '' if w4 is Non
 
 # 마지막 업데이트 날짜
 c = re.sub('id="lastUpdated" value="[^"]*"', 'id="lastUpdated" value="'+last_updated+'"', c)
-# 날짜 레이블
-try:
-    d = datetime.fromisoformat(last_updated)
-    date_label = f'{d.month}/1 ~ {d.month}/{d.day} 기준'
-except:
-    date_label = '날짜 미설정'
-c = re.sub('id="lastUpdatedLabel"[^>]*>[^<]*<', 'id="lastUpdatedLabel" class="text-xs text-gray-500 font-semibold">'+date_label+'<', c)
+# 날짜 레이블 - config.json의 lastUpdated 값 그대로 표시
+date_label = last_updated + ' 기준'
+c = re.sub('id="lastUpdatedLabel"[^>]*>[^<]*<', 'id="lastUpdatedLabel" class="text-xs text-gray-400">'+date_label+'<', c)
 
 # 광고비 - config.json 값으로 input value 교체
 for key in ['google', 'gdn', 'naver', 'cafe24']:
@@ -296,11 +306,16 @@ monthly_mb      = [monthSu[1],monthSu[2],monthSu[3],mb4]
 monthly_ga4_cvr = [6.28,4.74,3.38,ga4_cvr]
 monthly_mb_cvr  = [6.46,5.23,4.37,mb_cvr4]
 monthly_paid_mb = [monthSu[1],monthSu[2],monthSu[3],mb4]
-monthly_paid    = [monthPaid[1],monthPaid[2],monthPaid[3],monthPaid[4]]
-monthly_paid_r  = [round(monthPaid[k]/monthSu[k]*100,1) if monthSu[k] else 0 for k in [1,2,3,4]]
+monthly_paid    = [monthPaid[1],monthPaid[2],monthPaid[3],monthPaid[report_month]]
+monthly_paid_r  = [round(monthPaid[k]/monthSu[k]*100,1) if monthSu[k] else 0 for k in [1,2,3,report_month]]
 week_v   = [w1, w2, w3, w4]
-week_mb  = [weekSu[1], weekSu[2], weekSu[3], None]
-week_ga4 = [61, 49, max(0,total_su-61-49), None]
+week_mb  = [weekSu[1], weekSu[2], weekSu[3], weekSu[4] if weekSu[4] > 0 else None]
+week_ga4 = [None, None, None, None]
+
+# 현재 월 이름 (레이블용)
+month_names = {1:'1월',2:'2월',3:'3월',4:'4월',5:'5월',6:'6월',7:'7월',8:'8월',9:'9월',10:'10월',11:'11월',12:'12월'}
+cur_month_label = month_names.get(report_month, f'{report_month}월')
+monthly_labels = ['1월','2월','3월', cur_month_label]
 
 ch_su_pcts  = [round(d['su']/total_su*100,1) if total_su else 0 for d in ch_data]
 ch_prev_pct = [[47,43,44],[22,25,29],[19,18,17],[9,12,7],[3,2,3]]
@@ -311,10 +326,18 @@ for d in cvrS:
     d['cvr'] = round(d['su']/d['v']*100, 1) if d['v'] else 0
 
 inits = 'window.addEventListener("load",function(){\n'
-inits += 'if(window.weeklyAprilChartRef){var w=window.weeklyAprilChartRef;w.data.datasets[0].data='+json.dumps(week_v)+';w.data.datasets[1].data='+json.dumps(week_mb)+';w.data.datasets[2].data='+json.dumps(week_ga4)+';w.update();}\n'
-inits += 'if(window.monthlyTopChartRef){var mt=window.monthlyTopChartRef;mt.data.datasets[0].data='+json.dumps(monthly_v)+';mt.data.datasets[1].data='+json.dumps(monthly_mb)+';mt.data.datasets[2].data='+json.dumps(monthly_ga4)+';mt.update();}\n'
-inits += 'if(window.cvrTrendChartRef){var ct=window.cvrTrendChartRef;ct.data.datasets[0].data='+json.dumps(monthly_mb_cvr)+';ct.data.datasets[1].data='+json.dumps(monthly_ga4_cvr)+';ct.update();}\n'
-inits += 'if(window.paidConvChartRef){var pc=window.paidConvChartRef;pc.data.datasets[0].data='+json.dumps(monthly_paid_mb)+';pc.data.datasets[1].data='+json.dumps(monthly_paid)+';pc.data.datasets[2].data='+json.dumps(monthly_paid_r)+';pc.update();}\n'
+# 주차별 x축 레이블 (현재 월 기반)
+mo = report_month
+weekly_labels = [
+    [f'{mo}월 1주차', f'({mo}/1~{mo}/8)'],
+    [f'{mo}월 2주차', f'({mo}/9~{mo}/15)'],
+    [f'{mo}월 3주차', f'({mo}/16~{mo}/22)'],
+    [f'{mo}월 4주차', f'({mo}/23~{mo}/말)'],
+]
+inits += 'if(window.weeklyAprilChartRef){var w=window.weeklyAprilChartRef;w.data.labels='+json.dumps(weekly_labels)+';w.data.datasets[0].data='+json.dumps(week_v)+';w.data.datasets[1].data='+json.dumps(week_mb)+';w.data.datasets[2].data='+json.dumps(week_ga4)+';w.update();}\n'
+inits += 'if(window.monthlyTopChartRef){var mt=window.monthlyTopChartRef;mt.data.labels='+json.dumps(monthly_labels)+';mt.data.datasets[0].data='+json.dumps(monthly_v)+';mt.data.datasets[1].data='+json.dumps(monthly_mb)+';mt.data.datasets[2].data='+json.dumps(monthly_ga4)+';mt.update();}\n'
+inits += 'if(window.cvrTrendChartRef){var ct=window.cvrTrendChartRef;ct.data.labels='+json.dumps(monthly_labels)+';ct.data.datasets[0].data='+json.dumps(monthly_mb_cvr)+';ct.data.datasets[1].data='+json.dumps(monthly_ga4_cvr)+';ct.update();}\n'
+inits += 'if(window.paidConvChartRef){var pc=window.paidConvChartRef;pc.data.labels='+json.dumps(monthly_labels)+';pc.data.datasets[0].data='+json.dumps(monthly_paid_mb)+';pc.data.datasets[1].data='+json.dumps(monthly_paid)+';pc.data.datasets[2].data='+json.dumps(monthly_paid_r)+';pc.update();}\n'
 inits += 'if(window.cvrChartRef){var cv=window.cvrChartRef;cv.data.labels='+json.dumps([d['name'] for d in cvrS])+';cv.data.datasets[0].data='+json.dumps([round(d['su']/d['v']*100,1) if d['v'] else 0 for d in cvrS])+';cv.data.datasets[0].backgroundColor='+json.dumps([d['color']+'bb' for d in cvrS])+';cv.data.datasets[0].borderColor='+json.dumps([d['color'] for d in cvrS])+';cvrSorted.length=0;'+json.dumps(cvrS)+'.forEach(function(d){cvrSorted.push(d);});cv.update();}\n'
 for i in range(len(ch_data)):
     inits += 'if(window.channelTrendChartRef){window.channelTrendChartRef.data.datasets['+str(i)+'].data='+json.dumps(ch_prev_pct[i]+[ch_su_pcts[i]])+';window.channelTrendChartRef.data.datasets['+str(i)+'].su='+json.dumps(ch_prev_abs[i]+[ch_data[i]['su']])+';}\n'
