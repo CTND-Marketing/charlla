@@ -3,11 +3,14 @@ name: 리포트 자동 업데이트
 on:
   push:
     paths:
-      - 'data/**'   # data 폴더 안 파일이 바뀌면 자동 실행
+      - 'data/**'
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: 저장소 가져오기
         uses: actions/checkout@v4
