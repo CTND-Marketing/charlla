@@ -262,6 +262,12 @@ week_v = [w1, w2, w3, w4]
 week_mb = [week_mb_data[1], week_mb_data[2], week_mb_data[3],
            week_mb_data[4] if week_mb_data[4] > 0 else None]
 
+ranges_label = get_week_ranges(report_year, mo)
+weekly_labels = [
+    [f'{mo}월 {i+1}주차', f'({mo}/{ranges_label[i][0]}~{mo}/{ranges_label[i][1]})']
+    for i in range(4)
+]
+
 # 채널 비중 추이 (이전 월 데이터에서 가져오기)
 def get_prev_months(cur_key, n=3):
     yr, mo = int(cur_key[:4]), int(cur_key[5:])
@@ -590,11 +596,6 @@ c = c[:header_end] + '\n' + tabs_html + c[header_end:]
 
 # ── 차트 데이터 script 주입
 mo = report_month
-ranges_label = get_week_ranges(report_year, mo)
-weekly_labels = [
-    [f'{mo}월 {i+1}주차', f'({mo}/{ranges_label[i][0]}~{mo}/{ranges_label[i][1]})']
-    for i in range(4)
-]
 
 adEff_cpa  = [d['cost']//d['su'] if d['su'] else 0 for d in adEff]
 adEff_cvr_ = [round(d['su']/d['v']*100,2) if d['v'] else 0 for d in adEff]
