@@ -281,12 +281,20 @@ inits += 'if(window.weeklyAprilChartRef){var w=window.weeklyAprilChartRef;w.data
 inits += 'if(window.monthlyTopChartRef){var mt=window.monthlyTopChartRef;mt.data.datasets[0].data='+json.dumps(monthly_v)+';mt.data.datasets[1].data='+json.dumps(monthly_mb)+';mt.data.datasets[2].data='+json.dumps(monthly_ga4)+';mt.update();}\n'
 inits += 'if(window.cvrTrendChartRef){var ct=window.cvrTrendChartRef;ct.data.datasets[0].data='+json.dumps(monthly_mb_cvr)+';ct.data.datasets[1].data='+json.dumps(monthly_ga4_cvr)+';ct.update();}\n'
 inits += 'if(window.paidConvChartRef){var pc=window.paidConvChartRef;pc.data.datasets[0].data='+json.dumps(monthly_paid_mb)+';pc.data.datasets[1].data='+json.dumps(monthly_paid)+';pc.data.datasets[2].data='+json.dumps(monthly_paid_r)+';pc.update();}\n'
-inits += 'if(window.funnelChartRef){var f='+json.dumps(funnel)+';f.forEach(function(v,i){funnelData[i]=v;});window.funnelChartRef.data.datasets[0].data=f;window.funnelChartRef.update();}\n'
-inits += 'if(window.channelVisitChartRef){window.channelVisitChartRef.data.datasets[0].data='+json.dumps([d['su'] for d in ch_data])+';window.channelVisitChartRef.update();}\n'
 inits += 'if(window.cvrChartRef){var cv=window.cvrChartRef;cv.data.labels='+json.dumps([d['name'] for d in cvrS])+';cv.data.datasets[0].data='+json.dumps([round(d['su']/d['v']*100,1) if d['v'] else 0 for d in cvrS])+';cv.data.datasets[0].backgroundColor='+json.dumps([d['color']+'bb' for d in cvrS])+';cv.data.datasets[0].borderColor='+json.dumps([d['color'] for d in cvrS])+';cvrSorted.length=0;'+json.dumps(cvrS)+'.forEach(function(d){cvrSorted.push(d);});cv.update();}\n'
 for i in range(len(ch_data)):
     inits += 'if(window.channelTrendChartRef){window.channelTrendChartRef.data.datasets['+str(i)+'].data='+json.dumps(ch_prev_pct[i]+[ch_su_pcts[i]])+';window.channelTrendChartRef.data.datasets['+str(i)+'].su='+json.dumps(ch_prev_abs[i]+[ch_data[i]['su']])+';}\n'
 inits += 'if(window.channelTrendChartRef){window.channelTrendChartRef.update();}\n'
+
+# adEff 차트 (CPA 바차트, 버블차트)
+adEff_cpa   = [d['cost']//d['su'] if d['su'] else 0 for d in adEff]
+adEff_cvr   = [round(d['su']/d['v']*100,2) if d['v'] else 0 for d in adEff]
+adEff_cost  = [d['cost'] for d in adEff]
+maxCost     = max(adEff_cost) if adEff_cost else 1
+inits += 'if(typeof adCpaChartRef!=="undefined"&&adCpaChartRef){adCpaChartRef.data.datasets[0].data='+json.dumps(adEff_cpa)+';adCpaChartRef.update();}\n'
+inits += 'if(typeof adEffChartRef!=="undefined"&&adEffChartRef){'+\
+    ''.join(['adEffChartRef.data.datasets['+str(i)+'].data=[{x:'+str(adEff_cvr[i])+',y:'+str(round(adEff_cpa[i]/10000))+',r:'+str(max(8,round(adEff_cost[i]/maxCost*28)))+'}];' for i in range(len(adEff))])+\
+    'adEffChartRef.update();}\n'
 inits += '});\n'
 
 c = c.rstrip()
