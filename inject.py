@@ -208,7 +208,7 @@ ch_defs = [
     ('직접 유입',    '#10b981', lambda ct,n: ct=='direct'),
     ('카페24',       '#f59e0b', lambda ct,n: n in ('cafe24 (ad)','CAFE24 banner')),
     ('자연유입',     '#06b6d4', lambda ct,n: ct=='organic search' or n in ('blog','ai')),
-    ('기타',         '#cbd5e1', lambda ct,n: (ct in ('unassigned','SNS')) or (ct=='referral' and n not in ('cafe24 (ad)',)) or (ct=='display' and n!='GDN banner')),
+    ('기타',         '#cbd5e1', lambda ct,n: (ct in ('unassigned','SNS') and n not in ('blog','ai')) or (ct=='referral' and n not in ('cafe24 (ad)',)) or (ct=='display' and n!='GDN banner')),
 ]
 ch_data = []
 for name, color, fn in ch_defs:
