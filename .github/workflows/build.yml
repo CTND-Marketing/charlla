@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'data/**'
+      - 'index_template.html'
   workflow_dispatch:
 
 jobs:
