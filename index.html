@@ -311,7 +311,7 @@
       <div>
         <h1 class="text-3xl font-bold text-gray-800">찰나 유입 · 회원가입 리포트</h1>
         <div class="flex items-center gap-3 mt-2">
-          <span class="text-xs text-gray-400" id="lastUpdatedLabel" class="text-xs text-gray-400">2026-04-28 기준</span>
+          <span class="text-xs text-gray-400" id="lastUpdatedLabel" class="text-xs text-gray-400">2026-04-20 기준</span>
         </div>
       </div>
       <div class="flex gap-2 items-center mt-1 flex-wrap">
@@ -330,7 +330,7 @@
   <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
     <div class="card p-6 border-2 border-blue-400">
       <p class="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-2">총 유입</p>
-      <h2 class="text-2xl font-bold text-gray-800" id="kpiTotalV">4,890</h2>
+      <h2 class="text-2xl font-bold text-gray-800" id="kpiTotalV">4,890명</h2>
     </div>
     <div class="card p-6 border-2 border-indigo-400">
       <p class="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-3">회원가입</p>
@@ -340,7 +340,7 @@
             <span class="w-2 h-2 rounded-full bg-blue-500 inline-block"></span>
             <span class="text-xs text-gray-400 font-semibold">GA4</span>
           </div>
-          <span class="text-2xl font-bold text-gray-800" id="kpiGA4Su">172</span>
+          <span class="text-2xl font-bold text-gray-800" id="kpiGA4Su">172명</span>
         </div>
         <div class="w-px self-stretch bg-gray-100"></div>
         <div>
@@ -348,7 +348,7 @@
             <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
             <span class="text-xs text-gray-400 font-semibold">Metabase</span>
           </div>
-          <span class="text-2xl font-bold text-gray-800" id="kpiMBSu">275</span>
+          <span class="text-2xl font-bold text-gray-800" id="kpiMBSu">275명</span>
         </div>
       </div>
     </div>
@@ -1761,7 +1761,7 @@ document.getElementById('uploadEvents').addEventListener('change', function(e) {
 
 <script>
 window.addEventListener("load",function(){
-if(window.weeklyAprilChartRef){var w=window.weeklyAprilChartRef;w.data.labels=[["4\uc6d4 1\uc8fc\ucc28", "(4/1~4/8)"], ["4\uc6d4 2\uc8fc\ucc28", "(4/9~4/15)"], ["4\uc6d4 3\uc8fc\ucc28", "(4/16~4/22)"], ["4\uc6d4 4\uc8fc\ucc28", "(4/23~4/\ub9d0)"]];w.data.datasets[0].data=[1710, 1532, 1356, null];w.data.datasets[1].data=[86, 75, 65, 49];w.data.datasets[2].data=[null, null, null, null];w.update();}
+if(window.weeklyAprilChartRef){var w=window.weeklyAprilChartRef;w.data.labels=[["4\uc6d4 1\uc8fc\ucc28", "(4/1~4/8)"], ["4\uc6d4 2\uc8fc\ucc28", "(4/9~4/15)"], ["4\uc6d4 3\uc8fc\ucc28", "(4/16~4/22)"], ["4\uc6d4 4\uc8fc\ucc28", "(4/23~4/\ub9d0)"]];w.data.datasets[0].data=[1710, 1532, 917, null];w.data.datasets[1].data=[86, 75, 65, 49];w.data.datasets[2].data=[61, 49, 62, null];w.update();}
 if(window.monthlyTopChartRef){var mt=window.monthlyTopChartRef;mt.data.labels=["1\uc6d4", "2\uc6d4", "3\uc6d4", "4\uc6d4"];mt.data.datasets[0].data=[5046, 4687, 4532, 4890];mt.data.datasets[1].data=[326, 243, 198, 275];mt.data.datasets[2].data=[317, 222, 153, 172];mt.update();}
 if(window.cvrTrendChartRef){var ct=window.cvrTrendChartRef;ct.data.labels=["1\uc6d4", "2\uc6d4", "3\uc6d4", "4\uc6d4"];ct.data.datasets[0].data=[6.46, 5.23, 4.37, 5.62];ct.data.datasets[1].data=[6.28, 4.74, 3.38, 3.52];ct.update();}
 if(window.paidConvChartRef){var pc=window.paidConvChartRef;pc.data.labels=["1\uc6d4", "2\uc6d4", "3\uc6d4", "4\uc6d4"];pc.data.datasets[0].data=[326, 243, 198, 275];pc.data.datasets[1].data=[37, 22, 31, 4];pc.data.datasets[2].data=[11.3, 9.1, 15.7, 1.5];pc.update();}
