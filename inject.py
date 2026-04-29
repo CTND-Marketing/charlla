@@ -275,6 +275,9 @@ ch_su_pcts  = [round(d['su']/total_su*100,1) if total_su else 0 for d in ch_data
 ch_prev_pct = [[47,43,44],[22,25,29],[19,18,17],[9,12,7],[3,2,3]]
 ch_prev_abs = [[149,96,87],[70,56,57],[60,40,34],[29,27,14],[9,4,6]]
 cvrS = sorted(ch_data, key=lambda d: -(d['su']/d['v']) if d['v'] else 0)
+# cvr 필드 추가 (JS 플러그인에서 d.cvr 참조)
+for d in cvrS:
+    d['cvr'] = round(d['su']/d['v']*100, 1) if d['v'] else 0
 
 inits = 'window.addEventListener("load",function(){\n'
 inits += 'if(window.weeklyAprilChartRef){var w=window.weeklyAprilChartRef;w.data.datasets[0].data='+json.dumps(week_v)+';w.data.datasets[1].data='+json.dumps(week_mb)+';w.data.datasets[2].data='+json.dumps(week_ga4)+';w.update();}\n'
