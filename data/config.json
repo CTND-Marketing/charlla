@@ -1,73 +1,22 @@
 {
   "lastUpdated": "2026-04-29",
-  "weeklyVisitors": [1710, 1532, 917, null],
-  "ga4Cumulative": [61, 110, 145, 176],
+  "weeklyVisitors": [
+    1710,
+    1532,
+    917,
+    null
+  ],
+  "ga4Cumulative": [
+    61,
+    110,
+    145,
+    176
+  ],
   "adCosts": {
     "google": 250,
     "gdn": 100,
     "naver": 210,
     "cafe24": 369
   },
-  "months": {
-    "2026-01": {
-      "lastUpdated": "2026-01-31",
-      "totalV": 5046, "totalSu": 317, "ga4Cvr": 6.28,
-      "mbSu": 326, "mbCvr": 6.46, "paidSu": 37, "paidRate": 11.3,
-      "weekV": [null,null,null,null], "weekGa4": [null,null,null,null], "weekMb": [null,null,null,null],
-      "channels": [
-        {"name":"검색/배너광고","v":2457,"su":149,"color":"#3b82f6"},
-        {"name":"직접 유입","v":770,"su":70,"color":"#10b981"},
-        {"name":"카페24","v":282,"su":60,"color":"#f59e0b"},
-        {"name":"자연유입","v":242,"su":29,"color":"#06b6d4"},
-        {"name":"기타","v":66,"su":9,"color":"#cbd5e1"}
-      ],
-      "adEff": [
-        {"name":"Google\nKeyword","v":1223,"su":52,"cost":2500000,"color":"#3b82f6"},
-        {"name":"GDN","v":984,"su":7,"cost":1000000,"color":"#7c3aed"},
-        {"name":"Naver\n검색광고","v":243,"su":7,"cost":2100000,"color":"#10b981"},
-        {"name":"카페24\n배너","v":278,"su":17,"cost":3690000,"color":"#f59e0b"}
-      ],
-      "rawRows": {}
-    },
-    "2026-02": {
-      "lastUpdated": "2026-02-28",
-      "totalV": 4687, "totalSu": 222, "ga4Cvr": 4.74,
-      "mbSu": 245, "mbCvr": 5.23, "paidSu": 23, "paidRate": 9.4,
-      "weekV": [null,null,null,null], "weekGa4": [null,null,null,null], "weekMb": [null,null,null,null],
-      "channels": [
-        {"name":"검색/배너광고","v":2200,"su":96,"color":"#3b82f6"},
-        {"name":"직접 유입","v":750,"su":56,"color":"#10b981"},
-        {"name":"카페24","v":270,"su":40,"color":"#f59e0b"},
-        {"name":"자연유입","v":230,"su":27,"color":"#06b6d4"},
-        {"name":"기타","v":60,"su":4,"color":"#cbd5e1"}
-      ],
-      "adEff": [
-        {"name":"Google\nKeyword","v":1100,"su":45,"cost":2500000,"color":"#3b82f6"},
-        {"name":"GDN","v":900,"su":6,"cost":1000000,"color":"#7c3aed"},
-        {"name":"Naver\n검색광고","v":220,"su":6,"cost":2100000,"color":"#10b981"},
-        {"name":"카페24\n배너","v":260,"su":15,"cost":3690000,"color":"#f59e0b"}
-      ],
-      "rawRows": {}
-    },
-    "2026-03": {
-      "lastUpdated": "2026-03-31",
-      "totalV": 4532, "totalSu": 153, "ga4Cvr": 3.38,
-      "mbSu": 198, "mbCvr": 4.37, "paidSu": 24, "paidRate": 12.1,
-      "weekV": [null,null,null,null], "weekGa4": [null,null,null,null], "weekMb": [null,null,null,null],
-      "channels": [
-        {"name":"검색/배너광고","v":2100,"su":87,"color":"#3b82f6"},
-        {"name":"직접 유입","v":720,"su":57,"color":"#10b981"},
-        {"name":"카페24","v":265,"su":34,"color":"#f59e0b"},
-        {"name":"자연유입","v":220,"su":14,"color":"#06b6d4"},
-        {"name":"기타","v":62,"su":6,"color":"#cbd5e1"}
-      ],
-      "adEff": [
-        {"name":"Google\nKeyword","v":1150,"su":48,"cost":2500000,"color":"#3b82f6"},
-        {"name":"GDN","v":950,"su":7,"cost":1000000,"color":"#7c3aed"},
-        {"name":"Naver\n검색광고","v":230,"su":7,"cost":2100000,"color":"#10b981"},
-        {"name":"카페24\n배너","v":270,"su":16,"cost":3690000,"color":"#f59e0b"}
-      ],
-      "rawRows": {}
-    }
-  }
+  "months": {}
 }
