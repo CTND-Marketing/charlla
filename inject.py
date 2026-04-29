@@ -17,6 +17,8 @@ except:
 last_updated     = config.get('lastUpdated', '2026-04-20')
 weekly_visitors  = config.get('weeklyVisitors', [None, None, None, None])
 ad_costs         = config.get('adCosts', {'google':250,'gdn':100,'naver':210,'cafe24':369})
+# GA4 주차별 누적값 (이전 실행에서 저장된 값)
+ga4_cumulative   = config.get('ga4Cumulative', [0, 0, 0, 0])  # [1주차끝, 2주차끝, 3주차끝, 4주차끝]
 
 def map_visitor(g, s, m):
     g,s,m = g.strip().lower(), s.strip().lower(), m.strip().lower()
@@ -155,6 +157,39 @@ total_ac = sum(d['ac'] for _,_,d in all_data)
 total_po = sum(d['po'] for _,_,d in all_data)
 total_su = sum(d['su'] for _,_,d in all_data)
 ga4_cvr  = round(total_su/total_v*100, 2) if total_v else 0
+
+# ── GA4 주차별 자동 계산
+# lastUpdated 날짜 기준으로 현재 몇 주차인지 판단
+try:
+    report_dt = datetime.fromisoformat(last_updated)
+    report_day = report_dt.day
+except:
+    report_day = 20
+
+if report_day <= 8:      cur_week = 1
+elif report_day <= 15:   cur_week = 2
+elif report_day <= 22:   cur_week = 3
+else:                    cur_week = 4
+
+# 이전 주차 누적값에서 현재 주차 가입수 계산
+prev_cumulative = ga4_cumulative[cur_week - 2] if cur_week >= 2 else 0
+week_ga4 = [None, None, None, None]
+for w in range(1, cur_week):
+    prev = ga4_cumulative[w - 2] if w >= 2 else 0
+    cur  = ga4_cumulative[w - 1]
+    week_ga4[w - 1] = cur - prev if cur > 0 else None
+week_ga4[cur_week - 1] = total_su - prev_cumulative  # 현재 주차
+
+# config.json에 현재 누적값 저장 (다음 주를 위해)
+new_cumulative = ga4_cumulative[:]
+new_cumulative[cur_week - 1] = total_su
+config['ga4Cumulative'] = new_cumulative
+try:
+    with open('data/config.json', 'w', encoding='utf-8') as f:
+        json.dump(config, f, ensure_ascii=False, indent=2)
+    print(f"config.json 업데이트: {cur_week}주차 누적 {total_su}명 저장")
+except Exception as e:
+    print(f"config.json 저장 실패: {e}")
 mb_cur   = monthSu[report_month]  # 현재 월 MB 가입
 mb_cvr_cur = round(mb_cur/total_v*100, 2) if total_v else 0
 # 하위 호환
@@ -249,10 +284,10 @@ c = c[:ae_s] + ae_str + c[ae_e:]
 def rep(html, id_, val):
     return re.sub('id="'+id_+'">[^<]*<', 'id="'+id_+'">'+str(val)+'<', html)
 
-c = rep(c,'kpiTotalV', f'{total_v:,}')
-c = rep(c,'kpiGA4Su',  str(total_su))
+c = rep(c,'kpiTotalV', f'{total_v:,}명')
+c = rep(c,'kpiGA4Su',  f'{total_su:,}명')
 c = rep(c,'kpiGA4Cvr', str(ga4_cvr)+'%')
-c = rep(c,'kpiMBSu',   str(mb4))
+c = rep(c,'kpiMBSu',   f'{mb4:,}명')
 c = rep(c,'kpiMBCvr',  str(mb_cvr4)+'%')
 c = rep(c,'accTotalV',  str(total_v))
 c = rep(c,'accTotalFt', str(total_ft))
@@ -310,7 +345,6 @@ monthly_paid    = [monthPaid[1],monthPaid[2],monthPaid[3],monthPaid[report_month
 monthly_paid_r  = [round(monthPaid[k]/monthSu[k]*100,1) if monthSu[k] else 0 for k in [1,2,3,report_month]]
 week_v   = [w1, w2, w3, w4]
 week_mb  = [weekSu[1], weekSu[2], weekSu[3], weekSu[4] if weekSu[4] > 0 else None]
-week_ga4 = [None, None, None, None]
 
 # 현재 월 이름 (레이블용)
 month_names = {1:'1월',2:'2월',3:'3월',4:'4월',5:'5월',6:'6월',7:'7월',8:'8월',9:'9월',10:'10월',11:'11월',12:'12월'}
