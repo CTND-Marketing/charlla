@@ -1,6 +1,20 @@
-import csv, io, json, re
+import csv, io, json, re, calendar
 from openpyxl import load_workbook
-from datetime import datetime
+from datetime import datetime, date, timedelta
+
+def get_week_ranges(year, month):
+    """1주차: 1일~첫째주수요일, 이후 목~수 기준"""
+    d = date(year, month, 1)
+    while d.weekday() != 3:  # 첫 목요일
+        d += timedelta(days=1)
+    first_wed_end = d.day + 6  # 1주차 끝 (수요일)
+    last_day = calendar.monthrange(year, month)[1]
+    return [
+        (1,                    min(first_wed_end, last_day)),
+        (first_wed_end+1,      min(first_wed_end+7,  last_day)),
+        (first_wed_end+8,      min(first_wed_end+14, last_day)),
+        (first_wed_end+15,     last_day),
+    ]
 
 def read_euckr(path):
     with open(path, 'rb') as f:
@@ -146,12 +160,13 @@ try:
         all_month_su[key]   = all_month_su.get(key, 0) + 1
         if paid_idx is not None and str(row[paid_idx]).strip().upper() == 'Y':
             all_month_paid[key] = all_month_paid.get(key, 0) + 1
-        # 당월 주차 분기
+        # 당월 주차 분기 (목~수 기준)
         if mo == report_month and yr == report_year:
-            if d.day <= 8:    week_mb_data[1] += 1
-            elif d.day <= 15: week_mb_data[2] += 1
-            elif d.day <= 22: week_mb_data[3] += 1
-            else:             week_mb_data[4] += 1
+            ranges = get_week_ranges(yr, mo)
+            for w_idx, (ws, we) in enumerate(ranges, 1):
+                if ws <= d.day <= we:
+                    week_mb_data[w_idx] += 1
+                    break
 except Exception as e:
     print(f"Metabase 처리 오류: {e}")
 
@@ -166,11 +181,13 @@ ga4_cvr  = round(total_su/total_v*100, 2) if total_v else 0
 mb_cur   = all_month_su.get(cur_month_key, 0)
 mb_cvr   = round(mb_cur/total_v*100, 2) if total_v else 0
 
-# ── GA4 주차별 자동 계산
-if report_day <= 8:    cur_week = 1
-elif report_day <= 15: cur_week = 2
-elif report_day <= 22: cur_week = 3
-else:                  cur_week = 4
+# ── GA4 주차별 자동 계산 (목~수 기준)
+ranges_cur = get_week_ranges(report_year, report_month)
+cur_week = 4
+for w_idx, (ws, we) in enumerate(ranges_cur, 1):
+    if ws <= report_day <= we:
+        cur_week = w_idx
+        break
 
 prev_cum = ga4_cumulative[cur_week - 2] if cur_week >= 2 else 0
 week_ga4 = [None, None, None, None]
@@ -323,6 +340,7 @@ months_data[cur_month_key] = {
     'mbCvr':        mb_cvr,
     'paidSu':       paid_cur,
     'paidRate':     round(paid_cur/mb_cur*100, 1) if mb_cur else 0,
+    'weekLabels':   weekly_labels,
     'weekV':        week_v,
     'weekGa4':      week_ga4,
     'weekMb':       week_mb,
@@ -430,10 +448,9 @@ c = re.sub('id="lastUpdatedLabel"[^>]*>[^<]*<', 'id="lastUpdatedLabel" class="te
 
 # ── 월별 탭 HTML 생성
 def make_tab_html(months_data, cur_key):
-    sorted_keys = sorted(months_data.keys())
-    if cur_key not in sorted_keys:
-        sorted_keys.append(cur_key)
-    sorted_keys = sorted(sorted_keys)
+    # months_data에 저장된 월 + 현재 월 모두 탭으로 표시
+    all_keys = set(months_data.keys()) | {cur_key}
+    sorted_keys = sorted(all_keys)
 
     mo_names = {1:'1월',2:'2월',3:'3월',4:'4월',5:'5월',6:'6월',
                 7:'7월',8:'8월',9:'9월',10:'10월',11:'11월',12:'12월'}
@@ -481,8 +498,7 @@ function switchMonth(key) {{
   setEl('lastUpdatedLabel', (d.lastUpdated||key) + ' 기준');
 
   // 주차별 차트
-  var mo = parseInt(key.substring(5));
-  var wl = [[mo+'월 1주차','('+mo+'/1~'+mo+'/8)'],[mo+'월 2주차','('+mo+'/9~'+mo+'/15)'],[mo+'월 3주차','('+mo+'/16~'+mo+'/22)'],[mo+'월 4주차','('+mo+'/23~'+mo+'/말)']];
+  var wl = d.weekLabels || [[],[],[],[]];
   if (window.weeklyAprilChartRef) {{
     var w = window.weeklyAprilChartRef;
     w.data.labels = wl;
@@ -574,11 +590,10 @@ c = c[:header_end] + '\n' + tabs_html + c[header_end:]
 
 # ── 차트 데이터 script 주입
 mo = report_month
+ranges_label = get_week_ranges(report_year, mo)
 weekly_labels = [
-    [f'{mo}월 1주차', f'({mo}/1~{mo}/8)'],
-    [f'{mo}월 2주차', f'({mo}/9~{mo}/15)'],
-    [f'{mo}월 3주차', f'({mo}/16~{mo}/22)'],
-    [f'{mo}월 4주차', f'({mo}/23~{mo}/말)'],
+    [f'{mo}월 {i+1}주차', f'({mo}/{ranges_label[i][0]}~{mo}/{ranges_label[i][1]})']
+    for i in range(4)
 ]
 
 adEff_cpa  = [d['cost']//d['su'] if d['su'] else 0 for d in adEff]
