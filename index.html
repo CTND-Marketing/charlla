@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="ko"><head>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.13/html-to-image.min.js" integrity="sha512-iZ2ORl595Wx6miw+GuadDet4WQbdSWS3JLMoNfY8cRGoEFy6oT3G9IbcrBeL6AfkgpA51ETt/faX6yLV+/gFJg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -443,6 +445,8 @@
     </div>
   </div>
 
+
+
   <!-- 3개월 채널 비중 추이 -->
   <div class="card p-6 mb-6">
     <h3 class="text-base font-bold text-gray-700 mb-5">채널별 회원가입 비중 추이</h3>
@@ -603,8 +607,6 @@
 <script>
 const COLOR_GA = '#7c3aed';
 const COLOR_MB = '#10b981';
-// 원본 HTML 스냅샷 (데이터 주입 전 상태)
-const _ORIGINAL_HTML = document.documentElement.outerHTML;
 
 // RAW TABLE
 const rawData = [
@@ -670,7 +672,7 @@ rawData.forEach(({ cat, rows }) => {
 // 주차별 4월
 window.weeklyAprilChartRef = new Chart(document.getElementById('weeklyAprilChart'), {
   data: {
-    labels: [['4월 1주차', '(4/1~4/8)'], ['4월 2주차', '(4/9~4/15)'], ['4월 3주차', '(4/16~4/22)'], ['4월 4주차', '(4/23~4/30)']],
+    labels: ['4월 1주차 (4/1~4/8)', '4월 2주차 (4/9~4/15)', '4월 3주차 (4/16~4/22)', '4월 4주차 (4/23~4/30)'],
     datasets: [
       { type:'bar',  label:'방문자',       data:[1710,1532,917,null], backgroundColor:'rgba(59,130,246,0.15)', borderColor:'#3b82f6', borderWidth:2, borderRadius:6, borderSkipped:false, yAxisID:'y', order:3 },
       { type:'line', label:'Metabase 가입', data:[79,75,46,null],      borderColor:COLOR_MB, backgroundColor:'rgba(16,185,129,0.06)', borderWidth:2.5, pointBackgroundColor:COLOR_MB, pointRadius:6, borderDash:[4,3], tension:0, yAxisID:'y2', order:1 },
@@ -910,54 +912,6 @@ const funnelData = [4890, 1453, 768, 637, 172];
 const funnelLabels = ['유입','무료체험','계정생성','가입정책 동의','회원가입'];
 // dropRates[i] = i번째 막대 우측에 표시할 이탈률 (유입→무료체험 이탈률은 무료체험 행에 표시)
 const dropRates = [null, 70.1, 47.3, 17.8, 73.9];
-window.funnelChartRef = new Chart(document.getElementById('funnelChart'), {
-  type:'bar',
-  data: {
-    labels: funnelLabels,
-    datasets: [{ label:'사용자 수', data:funnelData, backgroundColor:['#e2e8f0','#cbd5e1','#94a3b8','#64748b','#3b82f6'], borderRadius:6, borderSkipped:false }]
-  },
-  options: {
-    indexAxis:'y', responsive:true,
-    layout: { padding: { right: 110 } },
-    plugins:{
-      legend:{display:false},
-      tooltip:{callbacks:{label:ctx=>` ${ctx.parsed.x.toLocaleString()}명`}}
-    },
-    scales:{
-      x:{grid:{color:'#f1f5f9'},ticks:{color:'#111827',font:{size:14}},max:3600},
-      y:{grid:{display:false},ticks:{color:'#111827',font:{size:14,family:'Pretendard'}}}
-    }
-  },
-  plugins:[{
-    id:'funnelDropLabels',
-    afterDatasetDraw(chart) {
-      const {ctx} = chart;
-      chart.getDatasetMeta(0).data.forEach((bar, i) => {
-        const val = funnelData[i];
-        const drop = dropRates[i];
-        const xEnd = bar.x;
-        const y = bar.y;
-        ctx.save();
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        ctx.font = '10px Pretendard, sans-serif';
-        ctx.fillStyle = '#374151';
-        const numText = val.toLocaleString() + '명';
-        if (drop !== null) {
-          ctx.fillText(numText, xEnd + 8, y);
-          const numWidth = ctx.measureText(numText).width;
-          const color = '#9ca3af';
-          ctx.font = '10px Pretendard, sans-serif';
-          ctx.fillStyle = color;
-          ctx.fillText(' (▼' + drop + '% 이탈)', xEnd + 8 + numWidth, y);
-        } else {
-          ctx.fillText(numText, xEnd + 8, y);
-        }
-        ctx.restore();
-      });
-    }
-  }]
-});
 
 // 채널 데이터
 const channels = [
@@ -972,36 +926,6 @@ const totalSU = 172;
 // 도넛
 // 채널별 회원가입 비중
 const totalSuChart = channels.reduce((a,c)=>a+c.su,0);
-window.channelVisitChartRef = new Chart(document.getElementById('channelVisitChart'), {
-  type:'doughnut',
-  data: { labels:channels.map(c=>c.name), datasets:[{data:channels.map(c=>c.su), backgroundColor:channels.map(c=>c.color), borderWidth:0, hoverOffset:4}] },
-  options: {
-    cutout:'45%', responsive:true,
-    plugins:{
-      legend:{position:'right',labels:{color:'#4b5563',font:{size:14,family:'Pretendard'},boxWidth:8,boxHeight:8,padding:10}},
-      tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${ctx.parsed}명 (${(ctx.parsed/totalSuChart*100).toFixed(1)}%)`}},
-    }
-  },
-  plugins:[{
-    id:'doughnutSuPct',
-    afterDatasetDraw(chart) {
-      const {ctx,data} = chart;
-      const total = data.datasets[0].data.reduce((a,b)=>a+b,0);
-      chart.getDatasetMeta(0).data.forEach((arc,i) => {
-        const val = data.datasets[0].data[i];
-        const pct = (val/total*100).toFixed(1);
-        if (parseFloat(pct) < 4) return;
-        const {x,y} = arc.tooltipPosition();
-        ctx.save();
-        ctx.textAlign='center'; ctx.fillStyle='#fff';
-        ctx.font='bold 13px Pretendard,sans-serif';
-        ctx.textBaseline='middle';
-        ctx.fillText(pct+'% ('+val+'명)', x, y);
-        ctx.restore();
-      });
-    }
-  }]
-});
 
 // CVR 바
 const cvrSorted = [...channels].map(c=>({...c,cvr:+(c.su/c.v*100).toFixed(1)})).sort((a,b)=>b.cvr-a.cvr);
@@ -1284,109 +1208,11 @@ function manualSave() {
   status.textContent = '저장 중...';
   status.className = 'text-xs text-gray-400';
   try {
-    // 1. localStorage 저장 (본인용)
     saveToLocal();
-
-    // 2. 현재 JS 변수 상태를 script 태그 앞에 주입해서 다운로드
-    // _ORIGINAL_HTML의 메인 <script> 태그 직전에 초기화 코드를 삽입
-    var initScript = '<script id="_dataInit">\n';
-    initScript += 'var _injectedRawData = ' + JSON.stringify(rawData) + ';\n';
-    initScript += 'var _injectedFunnelData = ' + JSON.stringify(funnelData) + ';\n';
-    initScript += 'var _injectedAdEff = ' + JSON.stringify(adEff.map(function(d){return {name:d.name,v:d.v,su:d.su,cost:d.cost,color:d.color};})) + ';\n';
-    initScript += 'var _injectedChannels = ' + JSON.stringify(channels) + ';\n';
-    initScript += 'var _injectedTotalSU = ' + totalSU + ';\n';
-
-    // 차트 데이터
-    var chartData = {};
-    if(window.weeklyAprilChartRef)  chartData.weekly  = window.weeklyAprilChartRef.data.datasets.map(function(d){return d.data;});
-    if(window.monthlyTopChartRef)   chartData.monthly = window.monthlyTopChartRef.data.datasets.map(function(d){return d.data;});
-    if(window.cvrTrendChartRef)     chartData.cvrTrend= window.cvrTrendChartRef.data.datasets.map(function(d){return d.data;});
-    if(window.paidConvChartRef)     chartData.paidConv= window.paidConvChartRef.data.datasets.map(function(d){return d.data;});
-    if(window.channelTrendChartRef) chartData.chTrend = window.channelTrendChartRef.data.datasets.map(function(d){return {data:d.data,su:d.su||null};});
-    if(window.funnelChartRef)       chartData.funnel  = window.funnelChartRef.data.datasets[0].data;
-    if(window.channelVisitChartRef) chartData.chVisit = window.channelVisitChartRef.data.datasets[0].data;
-    if(window.cvrChartRef)          chartData.cvr = {labels:window.cvrChartRef.data.labels,data:window.cvrChartRef.data.datasets[0].data,bg:window.cvrChartRef.data.datasets[0].backgroundColor,bd:window.cvrChartRef.data.datasets[0].borderColor,sorted:JSON.parse(JSON.stringify(cvrSorted))};
-    initScript += 'var _injectedChartData = ' + JSON.stringify(chartData) + ';\n';
-
-    // input 값
-    var inputs = {};
-    ['dateStart','dateEnd','wv1','wv2','wv3','wv4','cost_google','cost_gdn','cost_naver','cost_cafe24'].forEach(function(id){
-      var el = document.getElementById(id);
-      if(el) inputs[id] = el.value||'';
-    });
-    initScript += 'var _injectedInputs = ' + JSON.stringify(inputs) + ';\n';
-
-    // KPI 텍스트
-    var kpis = {};
-    ['kpiTotalV','kpiGA4Su','kpiGA4Cvr','kpiMBSu','kpiMBCvr',
-     'kpi_v_google','kpi_su_google','kpi_cvr_google','kpi_cpa_google','kpi_cost_google',
-     'kpi_v_gdn','kpi_su_gdn','kpi_cvr_gdn','kpi_cpa_gdn','kpi_cost_gdn',
-     'kpi_v_naver','kpi_su_naver','kpi_cvr_naver','kpi_cpa_naver','kpi_cost_naver',
-     'kpi_v_cafe24','kpi_su_cafe24','kpi_cvr_cafe24','kpi_cpa_cafe24','kpi_cost_cafe24',
-     'accTotalV','accTotalFt','accTotalAc','accTotalPo','accTotalSu','accTotalCvr',
-     'funnelDrop0','funnelDrop1','funnelDrop2','funnelDrop3'
-    ].forEach(function(id){
-      var el = document.getElementById(id);
-      if(el) kpis[id] = el.textContent;
-    });
-    initScript += 'var _injectedKpis = ' + JSON.stringify(kpis) + ';\n';
-    initScript += '<\/script>\n';
-
-    // _ORIGINAL_HTML의 메인 script 태그 직전에 주입
-    var html = _ORIGINAL_HTML;
-    var mainScriptIdx = html.indexOf('<script>\nconst COLOR_GA');
-    if (mainScriptIdx === -1) mainScriptIdx = html.indexOf('<script>\n// RAW');
-    if (mainScriptIdx === -1) mainScriptIdx = html.lastIndexOf('<script>');
-    html = html.slice(0, mainScriptIdx) + initScript + html.slice(mainScriptIdx);
-
-    // 로드 시 주입 데이터 적용하는 코드도 삽입
-    var applyScript = '<script>\nwindow.addEventListener("load",function(){\n';
-    applyScript += 'if(typeof loadFromLocal==="function"&&loadFromLocal())return;\n';
-    applyScript += 'if(typeof _injectedRawData==="undefined")return;\n';
-    applyScript += 'rawData.length=0;_injectedRawData.forEach(function(d){rawData.push(d);});\n';
-    applyScript += '_injectedFunnelData.forEach(function(v,i){funnelData[i]=v;});\n';
-    applyScript += '_injectedAdEff.forEach(function(d,i){if(adEff[i]){adEff[i].v=d.v;adEff[i].su=d.su;adEff[i].cost=d.cost;adEff[i].cpa=d.su?Math.round(d.cost/d.su):0;adEff[i].cvr=d.v?+(d.su/d.v*100).toFixed(2):0;}});\n';
-    applyScript += 'channels.length=0;_injectedChannels.forEach(function(d){channels.push(d);});totalSU=_injectedTotalSU;\n'; // note: totalSU는 const라 별도 처리
-    applyScript += 'Object.keys(_injectedInputs).forEach(function(id){var el=document.getElementById(id);if(el)el.value=_injectedInputs[id];});\n';
-    applyScript += 'Object.keys(_injectedKpis).forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=_injectedKpis[id];});\n';
-    applyScript += 'if(typeof renderTable==="function")renderTable("rawTableBody",rawData,{high:"bg-emerald-100 text-emerald-700",mid:"bg-blue-100 text-blue-700",low:"bg-red-100 text-red-700",null:"bg-gray-100 text-gray-400"});\n';
-    applyScript += 'if(typeof updateAdEff==="function")updateAdEff();\n';
-    // 차트 복원
-    var cd = chartData;
-    if(cd.weekly)   applyScript += 'requestAnimationFrame(function(){requestAnimationFrame(function(){\n';
-    if(cd.weekly)   applyScript += 'if(window.weeklyAprilChartRef){'+JSON.stringify(cd.weekly)+'.forEach(function(d,i){window.weeklyAprilChartRef.data.datasets[i].data=d;});window.weeklyAprilChartRef.update();}\n';
-    if(cd.monthly)  applyScript += 'if(window.monthlyTopChartRef){'+JSON.stringify(cd.monthly)+'.forEach(function(d,i){window.monthlyTopChartRef.data.datasets[i].data=d;});window.monthlyTopChartRef.update();}\n';
-    if(cd.cvrTrend) applyScript += 'if(window.cvrTrendChartRef){'+JSON.stringify(cd.cvrTrend)+'.forEach(function(d,i){window.cvrTrendChartRef.data.datasets[i].data=d;});window.cvrTrendChartRef.update();}\n';
-    if(cd.paidConv) applyScript += 'if(window.paidConvChartRef){'+JSON.stringify(cd.paidConv)+'.forEach(function(d,i){window.paidConvChartRef.data.datasets[i].data=d;});window.paidConvChartRef.update();}\n';
-    if(cd.chTrend)  applyScript += 'if(window.channelTrendChartRef){'+JSON.stringify(cd.chTrend)+'.forEach(function(d,i){window.channelTrendChartRef.data.datasets[i].data=d.data;if(d.su)window.channelTrendChartRef.data.datasets[i].su=d.su;});window.channelTrendChartRef.update();}\n';
-    if(cd.funnel)   applyScript += 'if(window.funnelChartRef){var f='+JSON.stringify(cd.funnel)+';f.forEach(function(v,i){funnelData[i]=v;});window.funnelChartRef.data.datasets[0].data=f;window.funnelChartRef.update();}\n';
-    if(cd.chVisit)  applyScript += 'if(window.channelVisitChartRef){window.channelVisitChartRef.data.datasets[0].data='+JSON.stringify(cd.chVisit)+';window.channelVisitChartRef.update();}\n';
-    if(cd.cvr)      applyScript += 'if(window.cvrChartRef){window.cvrChartRef.data.labels='+JSON.stringify(cd.cvr.labels)+';window.cvrChartRef.data.datasets[0].data='+JSON.stringify(cd.cvr.data)+';window.cvrChartRef.data.datasets[0].backgroundColor='+JSON.stringify(cd.cvr.bg)+';window.cvrChartRef.data.datasets[0].borderColor='+JSON.stringify(cd.cvr.bd)+';cvrSorted.length=0;'+JSON.stringify(cd.cvr.sorted)+'.forEach(function(d){cvrSorted.push(d);});window.cvrChartRef.update();}\n';
-    if(cd.weekly)   applyScript += '});});\n';
-    applyScript += '});\n<\/script>\n';
-
-    html = html.replace('</html>', applyScript + '</html>');
-
-    // 다운로드
-    var now = new Date();
-    var ts = (now.getMonth()+1) + '' + String(now.getDate()).padStart(2,'0');
-    var blob = new Blob([html], {type:'text/html;charset=utf-8'});
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      var a = document.createElement('a');
-      a.href = e.target.result;
-      a.download = '_찰나_마케팅_리포트_' + ts + '.html';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    };
-    reader.readAsDataURL(blob);
-
-    status.textContent = '✓ 저장 완료 · 파일 다운로드 중';
+    status.textContent = '✓ 저장 완료';
     status.className = 'text-xs text-emerald-500 font-semibold';
-    setTimeout(function(){ status.textContent = ''; status.className = 'text-xs text-gray-400'; }, 3000);
+    setTimeout(() => { status.textContent = ''; status.className = 'text-xs text-gray-400'; }, 3000);
   } catch(e) {
-    console.error('저장 실패:', e);
     status.textContent = '⚠ 저장 실패';
     status.className = 'text-xs text-red-400 font-semibold';
   }
