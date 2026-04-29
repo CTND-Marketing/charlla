@@ -310,9 +310,11 @@
         <h1 class="text-3xl font-bold text-gray-800">찰나 유입 · 회원가입 리포트</h1>
         <div class="flex items-center gap-3 mt-2">
           <div class="flex items-center gap-2">
-            <input type="date" id="dateStart" value="2026-04-01" class="text-xs border border-gray-200 rounded-lg px-2 py-1 text-gray-600 focus:outline-none focus:border-blue-400">
-            <span class="text-xs text-gray-400">~</span>
-            <input type="date" id="dateEnd" value="2026-04-20" class="text-xs border border-gray-200 rounded-lg px-2 py-1 text-gray-600 focus:outline-none focus:border-blue-400">
+            <span class="text-xs text-gray-400">마지막 업데이트</span>
+            <input type="date" id="lastUpdated" value="2026-04-20"
+              class="text-xs border border-gray-200 rounded-lg px-2 py-1 text-gray-600 focus:outline-none focus:border-blue-400"
+              onchange="updateLastUpdatedLabel()">
+            <span id="lastUpdatedLabel" class="text-xs text-gray-500 font-semibold">4/1 ~ 4/20 기준</span>
           </div>
         </div>
       </div>
@@ -323,25 +325,6 @@
         <span class="flex items-center gap-1.5 text-xs font-semibold text-gray-500 bg-white border border-gray-200 rounded-full px-3 py-1.5">
           <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>Metabase 기준
         </span>
-        <label class="flex items-center gap-1.5 text-xs font-semibold text-white bg-blue-500 hover:bg-blue-600 rounded-full px-4 py-1.5 cursor-pointer transition-colors">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M12 12V4m0 0l-3 3m3-3l3 3"></path></svg>
-          유입 트래픽 업로드
-          <input type="file" id="uploadVisitors" accept=".csv" class="hidden">
-        </label>
-        <label class="flex items-center gap-1.5 text-xs font-semibold text-white bg-violet-500 hover:bg-violet-600 rounded-full px-4 py-1.5 cursor-pointer transition-colors">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M12 12V4m0 0l-3 3m3-3l3 3"></path></svg>
-          이벤트 트래픽 업로드
-          <input type="file" id="uploadEvents" accept=".csv" class="hidden">
-        </label>
-        <label class="flex items-center gap-1.5 text-xs font-semibold text-white bg-emerald-500 hover:bg-emerald-600 rounded-full px-4 py-1.5 cursor-pointer transition-colors">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M12 12V4m0 0l-3 3m3-3l3 3"></path></svg>
-          Metabase 업로드
-          <input type="file" id="uploadMetabase" accept=".xlsx,.csv" class="hidden">
-        </label>
-        <button onclick="manualSave()" class="flex items-center gap-1.5 text-xs font-semibold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 rounded-full px-4 py-1.5 cursor-pointer transition-colors">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
-          저장
-        </button>
         <span id="uploadStatus" class="text-xs text-gray-400"></span>
       </div>
     </div>
@@ -432,29 +415,11 @@
       </div>
     </div>
 
-    <!-- 전환 퍼널 -->
+    <!-- 채널별 회원가입 전환율 -->
     <div class="card p-6">
-      <h3 class="text-base font-bold text-gray-700 mb-1">전환 퍼널</h3>
+      <h3 class="text-base font-bold text-gray-700 mb-1">채널별 회원가입 전환율</h3>
       <p class="text-sm text-gray-400 mb-5">당월 기준</p>
-      <canvas id="funnelChart" height="212" width="397" style="display: block; box-sizing: border-box; height: 212px; width: 397.5px;"></canvas>
-      <div class="mt-5 grid grid-cols-4 gap-2">
-        <div class="bg-gray-50 rounded-lg p-3 text-center">
-          <p class="text-sm text-gray-400 mb-1">유입→무료체험</p>
-          <p class="text-sm font-bold text-red-400"><span id="funnelDrop0">70.1</span>% <span class="font-normal text-xs text-gray-400">이탈</span></p>
-        </div>
-        <div class="bg-gray-50 rounded-lg p-3 text-center">
-          <p class="text-sm text-gray-400 mb-1">무료체험→계정</p>
-          <p class="text-sm font-bold text-amber-400"><span id="funnelDrop1">47.3</span>% <span class="font-normal text-xs text-gray-400">이탈</span></p>
-        </div>
-        <div class="bg-gray-50 rounded-lg p-3 text-center">
-          <p class="text-sm text-gray-400 mb-1">계정→가입정책</p>
-          <p class="text-sm font-bold text-emerald-400"><span id="funnelDrop2">17.9</span>% <span class="font-normal text-xs text-gray-400">이탈</span></p>
-        </div>
-        <div class="bg-gray-50 rounded-lg p-3 text-center">
-          <p class="text-sm text-gray-400 mb-1">정책→회원가입</p>
-          <p class="text-sm font-bold text-red-400"><span id="funnelDrop3">73.9</span>% <span class="font-normal text-xs text-gray-400">이탈</span></p>
-        </div>
-      </div>
+      <canvas id="cvrChart" height="265" width="397" style="display: block; box-sizing: border-box; height: 265px; width: 397.5px;"></canvas>
     </div>
 
   </div>
@@ -475,20 +440,6 @@
       <h3 class="text-base font-bold text-gray-700 mb-1">월별 유료 전환 추이</h3>
       <p class="text-sm text-gray-400 mb-5">가입월 기준 유료 전환 집계</p>
       <canvas id="paidConvChart" height="265" width="397" style="display: block; box-sizing: border-box; height: 265px; width: 397.5px;"></canvas>
-    </div>
-  </div>
-
-  <!-- 채널별 회원가입 비중 + 전환율 -->
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-    <div class="card p-6">
-      <h3 class="text-base font-bold text-gray-700 mb-1">채널별 회원가입 비중</h3>
-      <p class="text-sm text-gray-400 mb-1">당월 기준</p>
-      <canvas id="channelVisitChart" height="397" width="397" style="display: block; box-sizing: border-box; height: 397.5px; width: 397.5px;"></canvas>
-    </div>
-    <div class="card p-6">
-      <h3 class="text-base font-bold text-gray-700 mb-1">채널별 회원가입 전환율</h3>
-      <p class="text-sm text-gray-400 mb-5">당월 기준</p>
-      <canvas id="cvrChart" height="265" width="397" style="display: block; box-sizing: border-box; height: 265px; width: 397.5px;"></canvas>
     </div>
   </div>
 
@@ -1443,53 +1394,18 @@ function manualSave() {
 
 // ── 업데이트 후 자동 저장
 
-// ── 날짜 선택기
-function updateDateLabel() {
-  const startEl = document.getElementById('dateStart');
-  const endEl   = document.getElementById('dateEnd');
-  if (!startEl || !endEl) return;
-
-  const s = new Date(startEl.value);
-  const e = new Date(endEl.value);
-  if (isNaN(s) || isNaN(e)) return;
-
-  const sm = s.getMonth()+1, sd = s.getDate();
-  const em = e.getMonth()+1, ed = e.getDate();
-
-  // 헤더 기준일 — 제거됨
-
-  // raw data 누적 표 기간
-  const accLabel = document.getElementById('accPeriodLabel');
-  if (accLabel) accLabel.textContent = `${sm}/${sd}~${em}/${ed} 누적`;
-
-  // 월별 차트 x축 마지막 레이블 (4월(~xx) 형식)
-  const monthLabel = `${em}월(~${ed})`;
-  const charts = [
-    window.monthlyTopChartRef,
-    window.cvrTrendChartRef,
-    window.paidConvChartRef,
-    window.channelTrendChartRef,
-  ];
-  charts.forEach(chart => {
-    if (!chart) return;
-    const labels = chart.data.labels;
-    if (labels && labels.length === 4) {
-      labels[3] = monthLabel;
-      chart.update();
-    }
-  });
-
-  // '당월 기준' 텍스트들도 업데이트
-  document.querySelectorAll('[data-period]').forEach(el => {
-    el.textContent = `${sm}/${sd} ~ ${em}/${ed} 기준`;
-  });
+// ── 마지막 업데이트 날짜
+function updateLastUpdatedLabel() {
+  const el = document.getElementById('lastUpdated');
+  const label = document.getElementById('lastUpdatedLabel');
+  if (!el || !label) return;
+  const d = new Date(el.value);
+  if (isNaN(d)) return;
+  const m = d.getMonth() + 1;
+  const day = d.getDate();
+  label.textContent = m + '/1 ~ ' + m + '/' + day + ' 기준';
 }
-
-document.getElementById('dateStart').addEventListener('change', updateDateLabel);
-document.getElementById('dateEnd').addEventListener('change', updateDateLabel);
-
-// 초기 실행
-updateDateLabel();
+updateLastUpdatedLabel();
 
 // ── 주차별 방문자수 수동 입력
 function updateWeeklyVisitors() {
