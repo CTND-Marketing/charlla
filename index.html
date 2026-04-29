@@ -369,7 +369,7 @@
             <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
             <span class="text-xs text-gray-400 font-semibold">Metabase</span>
           </div>
-          <span class="text-2xl font-bold text-gray-800" id="kpiMBSu">206</span>
+          <span class="text-2xl font-bold text-gray-800" id="kpiMBSu">275</span>
         </div>
       </div>
     </div>
@@ -389,7 +389,7 @@
             <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
             <span class="text-xs text-gray-400 font-semibold">Metabase</span>
           </div>
-          <span class="text-2xl font-bold text-gray-800" id="kpiMBCvr">4.21%</span>
+          <span class="text-2xl font-bold text-gray-800" id="kpiMBCvr">5.62%</span>
         </div>
       </div>
     </div>
@@ -2083,10 +2083,10 @@ document.getElementById('uploadEvents').addEventListener('change', function(e) {
 
 <script>
 window.addEventListener("load",function(){
-if(window.weeklyAprilChartRef){var w=window.weeklyAprilChartRef;w.data.datasets[0].data=[1710, 1532, 1648, null];w.data.datasets[1].data=[79, 75, 52, null];w.data.datasets[2].data=[61, 49, 62, null];w.update();}
-if(window.monthlyTopChartRef){var mt=window.monthlyTopChartRef;mt.data.datasets[0].data=[5046, 4687, 4532, 4890];mt.data.datasets[1].data=[0, 0, 0, 206];mt.data.datasets[2].data=[317, 222, 153, 172];mt.update();}
-if(window.cvrTrendChartRef){var ct=window.cvrTrendChartRef;ct.data.datasets[0].data=[6.46, 5.23, 4.37, 4.21];ct.data.datasets[1].data=[6.28, 4.74, 3.38, 3.52];ct.update();}
-if(window.paidConvChartRef){var pc=window.paidConvChartRef;pc.data.datasets[0].data=[0, 0, 0, 206];pc.data.datasets[1].data=[0, 0, 0, 4];pc.data.datasets[2].data=[0, 0, 0, 1.9];pc.update();}
+if(window.weeklyAprilChartRef){var w=window.weeklyAprilChartRef;w.data.datasets[0].data=[1710, 1532, 1648, null];w.data.datasets[1].data=[86, 75, 114, null];w.data.datasets[2].data=[61, 49, 62, null];w.update();}
+if(window.monthlyTopChartRef){var mt=window.monthlyTopChartRef;mt.data.datasets[0].data=[5046, 4687, 4532, 4890];mt.data.datasets[1].data=[326, 243, 198, 275];mt.data.datasets[2].data=[317, 222, 153, 172];mt.update();}
+if(window.cvrTrendChartRef){var ct=window.cvrTrendChartRef;ct.data.datasets[0].data=[6.46, 5.23, 4.37, 5.62];ct.data.datasets[1].data=[6.28, 4.74, 3.38, 3.52];ct.update();}
+if(window.paidConvChartRef){var pc=window.paidConvChartRef;pc.data.datasets[0].data=[326, 243, 198, 275];pc.data.datasets[1].data=[37, 22, 31, 4];pc.data.datasets[2].data=[11.3, 9.1, 15.7, 1.5];pc.update();}
 if(window.funnelChartRef){var f=[4890, 1453, 768, 637, 172];f.forEach(function(v,i){funnelData[i]=v;});window.funnelChartRef.data.datasets[0].data=f;window.funnelChartRef.update();}
 if(window.channelVisitChartRef){window.channelVisitChartRef.data.datasets[0].data=[87, 41, 24, 17, 5];window.channelVisitChartRef.update();}
 if(window.cvrChartRef){var cv=window.cvrChartRef;cv.data.labels=["\uce74\ud39824", "\uc790\uc5f0\uc720\uc785", "\uc9c1\uc811 \uc720\uc785", "\uae30\ud0c0", "\uac80\uc0c9/\ubc30\ub108\uad11\uace0"];cv.data.datasets[0].data=[6.6, 5.3, 4.2, 3.3, 2.8];cv.data.datasets[0].backgroundColor=["#f59e0bbb", "#06b6d4bb", "#10b981bb", "#cbd5e1bb", "#3b82f6bb"];cv.data.datasets[0].borderColor=["#f59e0b", "#06b6d4", "#10b981", "#cbd5e1", "#3b82f6"];cvrSorted.length=0;[{"name": "\uce74\ud39824", "v": 361, "su": 24, "color": "#f59e0b"}, {"name": "\uc790\uc5f0\uc720\uc785", "v": 321, "su": 17, "color": "#06b6d4"}, {"name": "\uc9c1\uc811 \uc720\uc785", "v": 981, "su": 41, "color": "#10b981"}, {"name": "\uae30\ud0c0", "v": 153, "su": 5, "color": "#cbd5e1"}, {"name": "\uac80\uc0c9/\ubc30\ub108\uad11\uace0", "v": 3137, "su": 87, "color": "#3b82f6"}].forEach(function(d){cvrSorted.push(d);});cv.update();}
