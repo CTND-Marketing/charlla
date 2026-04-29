@@ -1,0 +1,2101 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.13/html-to-image.min.js" integrity="sha512-iZ2ORl595Wx6miw+GuadDet4WQbdSWS3JLMoNfY8cRGoEFy6oT3G9IbcrBeL6AfkgpA51ETt/faX6yLV+/gFJg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+      (function() {
+        const originalConsole = window.console;
+        window.console = {
+          log: (...args) => {
+            originalConsole.log(...args);
+            window.parent.postMessage({ type: 'console', message: args.join(' ') }, '*');
+          },
+          error: (...args) => {
+            originalConsole.error(...args);
+            window.parent.postMessage({ type: 'console', message: 'Error: ' + args.join(' ') }, '*');
+          },
+          warn: (...args) => {
+            originalConsole.warn(...args);
+            window.parent.postMessage({ type: 'console', message: 'Warning: ' + args.join(' ') }, '*');
+          }
+        };
+
+        let requestId = 0;
+        let callbacksMap = new Map();
+        let streamControllers = new Map();
+        
+        window.claude = {
+          complete: (prompt) => {
+            return new Promise((resolve, reject) => {
+              const id = requestId++;
+              callbacksMap.set(id, { resolve, reject });
+              window.parent.postMessage({ type: 'claudeComplete', id, prompt }, '*');
+            });
+          }
+        };
+
+        window.storage = {
+          get: (key, shared = false) => {
+            return new Promise((resolve, reject) => {
+              const id = requestId++;
+              callbacksMap.set(id, { resolve, reject });
+              window.parent.postMessage({ type: 'storageGet', id, key, shared }, '*');
+            });
+          },
+          set: (key, value, shared = false) => {
+            return new Promise((resolve, reject) => {
+              const id = requestId++;
+              callbacksMap.set(id, { resolve, reject });
+              window.parent.postMessage({ type: 'storageSet', id, key, value, shared }, '*');
+            });
+          },
+          delete: (key, shared = false) => {
+            return new Promise((resolve, reject) => {
+              const id = requestId++;
+              callbacksMap.set(id, { resolve, reject });
+              window.parent.postMessage({ type: 'storageDelete', id, key, shared }, '*');
+            });
+          },
+          list: (prefix, shared = false) => {
+            return new Promise((resolve, reject) => {
+              const id = requestId++;
+              callbacksMap.set(id, { resolve, reject });
+              window.parent.postMessage({ type: 'storageList', id, prefix, shared }, '*');
+            });
+          }
+        };
+
+        let pendingBlobs = new Map();
+        URL.createObjectURL = (blob) => {
+          // Store the blob and create an ID and URL for it
+          const blobId = `blob-${Date.now()}-${Math.random()}`;
+          pendingBlobs.set(blobId, blob);
+          return `blob-request://${blobId}`;
+        };
+
+        URL.revokeObjectURL = (url) => {
+          // Remove the blob from our store
+          const blobId = url.replace("blob-request://", "");
+          pendingBlobs.delete(blobId);
+        };
+
+        const getBlobFromURL = (url) => {
+          const blobId = url.replace("blob-request://", "");
+          return pendingBlobs.get(blobId);
+        };
+
+        // Override global fetch with streaming support
+        window.fetch = (url, init = {}) => {
+          return new Promise((resolve, reject) => {
+            const id = requestId++;
+            const channelId = `fetch-${id}-${Date.now()}`;
+            
+            callbacksMap.set(id, { 
+              resolve: (response) => {
+                // Create a ReadableStream for the response body
+                const stream = new ReadableStream({
+                  start(controller) {
+                    streamControllers.set(channelId, controller);
+                  },
+                  cancel() {
+                    streamControllers.delete(channelId);
+                  }
+                });
+                
+                // Create and return the Response with the stream
+                resolve(new Response(stream, {
+                  status: response.status,
+                  statusText: response.statusText,
+                  headers: response.headers
+                }));
+              },
+              reject,
+              channelId
+            });
+            
+            window.parent.postMessage({
+              type: 'proxyFetch',
+              id,
+              url,
+              init,
+              channelId
+            }, '*');
+          });
+        };
+
+        window.addEventListener('message', async (event) => {
+          if (event.data.type === 'takeScreenshot') {
+            const rootElement = document.getElementById('artifacts-component-root-html');
+            if (!rootElement) {
+              window.parent.postMessage({
+                type: 'screenshotError',
+                error: new Error('Root element not found'),
+              }, '*');
+            }
+            const screenshot = await htmlToImage.toPng(rootElement, {
+              imagePlaceholder:
+                "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAAXNSR0IArs4c6QAAAA1JREFUGFdjePDgwX8ACOQDoNsk0PMAAAAASUVORK5CYII=",
+            });
+            window.parent.postMessage({
+              type: 'screenshotData',
+              data: screenshot,
+            }, '*');
+          } else if (event.data.type === 'claudeComplete') {
+            const callback = callbacksMap.get(event.data.id);
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+            } else {
+              callback.resolve(event.data.completion);
+            }
+            callbacksMap.delete(event.data.id);
+          } else if (event.data.type === 'proxyFetchResponse') {
+            const callback = callbacksMap.get(event.data.id);
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+              callbacksMap.delete(event.data.id);
+            } else {
+              // Initial response with headers, status, etc.
+              callback.resolve({
+                status: event.data.status,
+                statusText: event.data.statusText,
+                headers: event.data.headers
+              });
+              // Don't delete the callback yet if streaming
+              if (!event.data.body) {
+                callbacksMap.delete(event.data.id);
+              }
+            }
+          } else if (event.data.type === 'proxyFetchStream') {
+            // Handle streaming data chunks
+            const controller = streamControllers.get(event.data.channelId);
+            if (controller) {
+              if (event.data.error) {
+                controller.error(new Error(event.data.error));
+                streamControllers.delete(event.data.channelId);
+              } else if (event.data.done) {
+                controller.close();
+                streamControllers.delete(event.data.channelId);
+                // Clean up the callback
+                const callback = Array.from(callbacksMap.entries()).find(
+                  ([_, value]) => value.channelId === event.data.channelId
+                );
+                if (callback) {
+                  callbacksMap.delete(callback[0]);
+                }
+              } else if (event.data.chunk) {
+                controller.enqueue(new Uint8Array(event.data.chunk));
+              }
+            }
+          } else if (event.data.type === 'storageGet') {
+            const callback = callbacksMap.get(event.data.id);
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+            } else {
+              callback.resolve(event.data.result);
+            }
+            callbacksMap.delete(event.data.id);
+          } else if (event.data.type === 'storageSet') {
+            const callback = callbacksMap.get(event.data.id);
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+            } else {
+              callback.resolve(event.data.result);
+            }
+            callbacksMap.delete(event.data.id);
+          } else if (event.data.type === 'storageDelete') {
+            const callback = callbacksMap.get(event.data.id);
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+            } else {
+              callback.resolve(event.data.result);
+            }
+            callbacksMap.delete(event.data.id);
+          } else if (event.data.type === 'storageList') {
+            const callback = callbacksMap.get(event.data.id);
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+            } else {
+              callback.resolve(event.data.result);
+            }
+            callbacksMap.delete(event.data.id);
+          }
+        });
+
+        window.addEventListener('click', (event) => {
+          const isEl = event.target instanceof HTMLElement;
+          if (!isEl) return;
+    
+          // find ancestor links
+          const linkEl = event.target.closest("a");
+          if (!linkEl || !linkEl.href) return;
+    
+          event.preventDefault();
+          event.stopImmediatePropagation();
+    
+          if (linkEl.href.startsWith("blob-request:")) {
+            const blob = getBlobFromURL(linkEl.href);
+            if (!blob) return;
+            void blob.arrayBuffer().then((data) => {
+              window.parent.postMessage({
+                type: "downloadFile",
+                filename: linkEl.download,
+                data,
+                mimeType: blob.type || "application/octet-stream",
+              });
+            });
+          } else if (linkEl.href.startsWith("data:")) {
+            const [header, base64Data] = linkEl.href.split(",");
+            const mimeMatch = header.match(/data:([^;]+)/);
+            const mimeType = mimeMatch ? mimeMatch[1] : "application/octet-stream";
+            const binaryString = atob(base64Data);
+            const data = Uint8Array.from(binaryString, (c) =>
+              c.charCodeAt(0),
+            ).buffer;
+            window.parent.postMessage({
+              type: "downloadFile",
+              filename: linkEl.download,
+              data,
+              mimeType,
+            });
+          } else {
+            let linkUrl;
+            try {
+              linkUrl = new URL(linkEl.href);
+            } catch (error) {
+              return;
+            }
+    
+            if (linkUrl.hostname === window.location.hostname) return;
+      
+            window.parent.postMessage({
+              type: 'openExternal',
+              href: linkEl.href,
+            }, '*');
+          }
+      });
+
+        const originalOpen = window.open;
+        window.open = function (url) {
+          window.parent.postMessage({
+            type: "openExternal",
+            href: url,
+          }, "*");
+        };
+
+        window.addEventListener('error', (event) => {
+          window.parent.postMessage({ type: 'console', message: 'Uncaught Error: ' + event.message }, '*');
+        });
+      })();
+    </script>
+  
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>찰나 유입 · 회원가입 리포트</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<link rel="stylesheet" as="style" crossorigin="" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  html { font-size: 110%; }
+  body { font-family: 'Pretendard', -apple-system, sans-serif; background-color: #f8fafc; }
+  .card { background: white; border-radius: 1rem; box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.07), 0 1px 2px -1px rgb(0 0 0 / 0.07); }
+</style>
+<style>*, ::before, ::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/* ! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com */*,::after,::before{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}::after,::before{--tw-content:''}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;font-family:ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0;padding:0}legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.mx-auto{margin-left:auto;margin-right:auto}.mb-0\.5{margin-bottom:0.125rem}.mb-1{margin-bottom:0.25rem}.mb-10{margin-bottom:2.5rem}.mb-2{margin-bottom:0.5rem}.mb-3{margin-bottom:0.75rem}.mb-4{margin-bottom:1rem}.mb-5{margin-bottom:1.25rem}.mb-6{margin-bottom:1.5rem}.mb-8{margin-bottom:2rem}.ml-1{margin-left:0.25rem}.mt-1{margin-top:0.25rem}.mt-2{margin-top:0.5rem}.mt-3{margin-top:0.75rem}.mt-5{margin-top:1.25rem}.block{display:block}.inline-block{display:inline-block}.flex{display:flex}.grid{display:grid}.hidden{display:none}.h-2{height:0.5rem}.h-3\.5{height:0.875rem}.w-2{width:0.5rem}.w-3\.5{width:0.875rem}.w-full{width:100%}.w-px{width:1px}.max-w-6xl{max-width:72rem}.cursor-pointer{cursor:pointer}.grid-cols-1{grid-template-columns:repeat(1, minmax(0, 1fr))}.grid-cols-2{grid-template-columns:repeat(2, minmax(0, 1fr))}.grid-cols-3{grid-template-columns:repeat(3, minmax(0, 1fr))}.grid-cols-4{grid-template-columns:repeat(4, minmax(0, 1fr))}.flex-wrap{flex-wrap:wrap}.items-start{align-items:flex-start}.items-center{align-items:center}.justify-between{justify-content:space-between}.gap-1{gap:0.25rem}.gap-1\.5{gap:0.375rem}.gap-2{gap:0.5rem}.gap-3{gap:0.75rem}.gap-4{gap:1rem}.gap-5{gap:1.25rem}.gap-6{gap:1.5rem}.self-stretch{align-self:stretch}.overflow-x-auto{overflow-x:auto}.rounded-full{border-radius:9999px}.rounded-lg{border-radius:0.5rem}.rounded-xl{border-radius:0.75rem}.border{border-width:1px}.border-2{border-width:2px}.border-b{border-bottom-width:1px}.border-t{border-top-width:1px}.border-t-2{border-top-width:2px}.border-t-4{border-top-width:4px}.border-amber-400{--tw-border-opacity:1;border-color:rgb(251 191 36 / var(--tw-border-opacity, 1))}.border-blue-400{--tw-border-opacity:1;border-color:rgb(96 165 250 / var(--tw-border-opacity, 1))}.border-gray-100{--tw-border-opacity:1;border-color:rgb(243 244 246 / var(--tw-border-opacity, 1))}.border-gray-200{--tw-border-opacity:1;border-color:rgb(229 231 235 / var(--tw-border-opacity, 1))}.border-indigo-400{--tw-border-opacity:1;border-color:rgb(129 140 248 / var(--tw-border-opacity, 1))}.border-gray-50{--tw-border-opacity:1;border-color:rgb(249 250 251 / var(--tw-border-opacity, 1))}.border-t-amber-500{--tw-border-opacity:1;border-top-color:rgb(245 158 11 / var(--tw-border-opacity, 1))}.border-t-blue-500{--tw-border-opacity:1;border-top-color:rgb(59 130 246 / var(--tw-border-opacity, 1))}.border-t-emerald-500{--tw-border-opacity:1;border-top-color:rgb(16 185 129 / var(--tw-border-opacity, 1))}.border-t-violet-500{--tw-border-opacity:1;border-top-color:rgb(139 92 246 / var(--tw-border-opacity, 1))}.bg-amber-100{--tw-bg-opacity:1;background-color:rgb(254 243 199 / var(--tw-bg-opacity, 1))}.bg-blue-100{--tw-bg-opacity:1;background-color:rgb(219 234 254 / var(--tw-bg-opacity, 1))}.bg-blue-500{--tw-bg-opacity:1;background-color:rgb(59 130 246 / var(--tw-bg-opacity, 1))}.bg-emerald-100{--tw-bg-opacity:1;background-color:rgb(209 250 229 / var(--tw-bg-opacity, 1))}.bg-emerald-500{--tw-bg-opacity:1;background-color:rgb(16 185 129 / var(--tw-bg-opacity, 1))}.bg-gray-100{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity, 1))}.bg-gray-50{--tw-bg-opacity:1;background-color:rgb(249 250 251 / var(--tw-bg-opacity, 1))}.bg-purple-100{--tw-bg-opacity:1;background-color:rgb(243 232 255 / var(--tw-bg-opacity, 1))}.bg-violet-500{--tw-bg-opacity:1;background-color:rgb(139 92 246 / var(--tw-bg-opacity, 1))}.bg-white{--tw-bg-opacity:1;background-color:rgb(255 255 255 / var(--tw-bg-opacity, 1))}.bg-red-100{--tw-bg-opacity:1;background-color:rgb(254 226 226 / var(--tw-bg-opacity, 1))}.p-4{padding:1rem}.p-3{padding:0.75rem}.p-6{padding:1.5rem}.p-8{padding:2rem}.px-2{padding-left:0.5rem;padding-right:0.5rem}.px-3{padding-left:0.75rem;padding-right:0.75rem}.px-4{padding-left:1rem;padding-right:1rem}.py-0\.5{padding-top:0.125rem;padding-bottom:0.125rem}.py-1{padding-top:0.25rem;padding-bottom:0.25rem}.py-1\.5{padding-top:0.375rem;padding-bottom:0.375rem}.py-2{padding-top:0.5rem;padding-bottom:0.5rem}.py-3{padding-top:0.75rem;padding-bottom:0.75rem}.py-2\.5{padding-top:0.625rem;padding-bottom:0.625rem}.pb-3{padding-bottom:0.75rem}.pl-3{padding-left:0.75rem}.pr-4{padding-right:1rem}.pt-3{padding-top:0.75rem}.pt-5{padding-top:1.25rem}.pl-4{padding-left:1rem}.pl-8{padding-left:2rem}.text-left{text-align:left}.text-center{text-align:center}.text-right{text-align:right}.text-2xl{font-size:1.5rem;line-height:2rem}.text-3xl{font-size:1.875rem;line-height:2.25rem}.text-base{font-size:1rem;line-height:1.5rem}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-sm{font-size:0.875rem;line-height:1.25rem}.text-xs{font-size:0.75rem;line-height:1rem}.font-bold{font-weight:700}.font-normal{font-weight:400}.font-semibold{font-weight:600}.uppercase{text-transform:uppercase}.tabular-nums{--tw-numeric-spacing:tabular-nums;font-variant-numeric:var(--tw-ordinal) var(--tw-slashed-zero) var(--tw-numeric-figure) var(--tw-numeric-spacing) var(--tw-numeric-fraction)}.leading-relaxed{line-height:1.625}.tracking-wide{letter-spacing:0.025em}.tracking-widest{letter-spacing:0.1em}.text-amber-400{--tw-text-opacity:1;color:rgb(251 191 36 / var(--tw-text-opacity, 1))}.text-amber-500{--tw-text-opacity:1;color:rgb(245 158 11 / var(--tw-text-opacity, 1))}.text-amber-700{--tw-text-opacity:1;color:rgb(180 83 9 / var(--tw-text-opacity, 1))}.text-blue-500{--tw-text-opacity:1;color:rgb(59 130 246 / var(--tw-text-opacity, 1))}.text-blue-700{--tw-text-opacity:1;color:rgb(29 78 216 / var(--tw-text-opacity, 1))}.text-emerald-400{--tw-text-opacity:1;color:rgb(52 211 153 / var(--tw-text-opacity, 1))}.text-emerald-500{--tw-text-opacity:1;color:rgb(16 185 129 / var(--tw-text-opacity, 1))}.text-emerald-700{--tw-text-opacity:1;color:rgb(4 120 87 / var(--tw-text-opacity, 1))}.text-gray-400{--tw-text-opacity:1;color:rgb(156 163 175 / var(--tw-text-opacity, 1))}.text-gray-500{--tw-text-opacity:1;color:rgb(107 114 128 / var(--tw-text-opacity, 1))}.text-gray-600{--tw-text-opacity:1;color:rgb(75 85 99 / var(--tw-text-opacity, 1))}.text-gray-700{--tw-text-opacity:1;color:rgb(55 65 81 / var(--tw-text-opacity, 1))}.text-gray-800{--tw-text-opacity:1;color:rgb(31 41 55 / var(--tw-text-opacity, 1))}.text-purple-700{--tw-text-opacity:1;color:rgb(126 34 206 / var(--tw-text-opacity, 1))}.text-red-400{--tw-text-opacity:1;color:rgb(248 113 113 / var(--tw-text-opacity, 1))}.text-violet-500{--tw-text-opacity:1;color:rgb(139 92 246 / var(--tw-text-opacity, 1))}.text-white{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.text-gray-300{--tw-text-opacity:1;color:rgb(209 213 219 / var(--tw-text-opacity, 1))}.text-red-700{--tw-text-opacity:1;color:rgb(185 28 28 / var(--tw-text-opacity, 1))}.transition-colors{transition-property:color, background-color, border-color, fill, stroke, -webkit-text-decoration-color;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, -webkit-text-decoration-color;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.hover\:bg-blue-600:hover{--tw-bg-opacity:1;background-color:rgb(37 99 235 / var(--tw-bg-opacity, 1))}.hover\:bg-emerald-600:hover{--tw-bg-opacity:1;background-color:rgb(5 150 105 / var(--tw-bg-opacity, 1))}.hover\:bg-violet-600:hover{--tw-bg-opacity:1;background-color:rgb(124 58 237 / var(--tw-bg-opacity, 1))}.hover\:bg-gray-50:hover{--tw-bg-opacity:1;background-color:rgb(249 250 251 / var(--tw-bg-opacity, 1))}.focus\:border-amber-400:focus{--tw-border-opacity:1;border-color:rgb(251 191 36 / var(--tw-border-opacity, 1))}.focus\:border-blue-400:focus{--tw-border-opacity:1;border-color:rgb(96 165 250 / var(--tw-border-opacity, 1))}.focus\:border-emerald-400:focus{--tw-border-opacity:1;border-color:rgb(52 211 153 / var(--tw-border-opacity, 1))}.focus\:border-violet-400:focus{--tw-border-opacity:1;border-color:rgb(167 139 250 / var(--tw-border-opacity, 1))}.focus\:outline-none:focus{outline:2px solid transparent;outline-offset:2px}@media (min-width: 768px){.md\:grid-cols-2{grid-template-columns:repeat(2, minmax(0, 1fr))}.md\:grid-cols-3{grid-template-columns:repeat(3, minmax(0, 1fr))}.md\:grid-cols-4{grid-template-columns:repeat(4, minmax(0, 1fr))}.md\:p-10{padding:2.5rem}}@media (min-width: 1024px){.lg\:grid-cols-2{grid-template-columns:repeat(2, minmax(0, 1fr))}.lg\:grid-cols-4{grid-template-columns:repeat(4, minmax(0, 1fr))}}</style></head>
+<body class="p-4 md:p-10" id="artifacts-component-root-html">
+<div class="max-w-6xl mx-auto">
+
+  <!-- HEADER -->
+  <header class="mb-10">
+    <div class="flex items-start justify-between flex-wrap gap-4">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-800">찰나 유입 · 회원가입 리포트</h1>
+        <div class="flex items-center gap-3 mt-2">
+          <div class="flex items-center gap-2">
+            <input type="date" id="dateStart" value="2026-04-01" class="text-xs border border-gray-200 rounded-lg px-2 py-1 text-gray-600 focus:outline-none focus:border-blue-400">
+            <span class="text-xs text-gray-400">~</span>
+            <input type="date" id="dateEnd" value="2026-04-20" class="text-xs border border-gray-200 rounded-lg px-2 py-1 text-gray-600 focus:outline-none focus:border-blue-400">
+          </div>
+        </div>
+      </div>
+      <div class="flex gap-2 items-center mt-1 flex-wrap">
+        <span class="flex items-center gap-1.5 text-xs font-semibold text-gray-500 bg-white border border-gray-200 rounded-full px-3 py-1.5">
+          <span class="w-2 h-2 rounded-full bg-blue-500 inline-block"></span>GA4 기준
+        </span>
+        <span class="flex items-center gap-1.5 text-xs font-semibold text-gray-500 bg-white border border-gray-200 rounded-full px-3 py-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>Metabase 기준
+        </span>
+        <label class="flex items-center gap-1.5 text-xs font-semibold text-white bg-blue-500 hover:bg-blue-600 rounded-full px-4 py-1.5 cursor-pointer transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M12 12V4m0 0l-3 3m3-3l3 3"></path></svg>
+          유입 트래픽 업로드
+          <input type="file" id="uploadVisitors" accept=".csv" class="hidden">
+        </label>
+        <label class="flex items-center gap-1.5 text-xs font-semibold text-white bg-violet-500 hover:bg-violet-600 rounded-full px-4 py-1.5 cursor-pointer transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M12 12V4m0 0l-3 3m3-3l3 3"></path></svg>
+          이벤트 트래픽 업로드
+          <input type="file" id="uploadEvents" accept=".csv" class="hidden">
+        </label>
+        <label class="flex items-center gap-1.5 text-xs font-semibold text-white bg-emerald-500 hover:bg-emerald-600 rounded-full px-4 py-1.5 cursor-pointer transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M12 12V4m0 0l-3 3m3-3l3 3"></path></svg>
+          Metabase 업로드
+          <input type="file" id="uploadMetabase" accept=".xlsx,.csv" class="hidden">
+        </label>
+        <button onclick="manualSave()" class="flex items-center gap-1.5 text-xs font-semibold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 rounded-full px-4 py-1.5 cursor-pointer transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+          저장
+        </button>
+        <span id="uploadStatus" class="text-xs text-gray-400"></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- KPI CARDS -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+    <div class="card p-6 border-2 border-blue-400">
+      <p class="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-2">총 유입</p>
+      <h2 class="text-2xl font-bold text-gray-800" id="kpiTotalV">3,817</h2>
+    </div>
+    <div class="card p-6 border-2 border-indigo-400">
+      <p class="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-3">회원가입</p>
+      <div class="flex items-center gap-6">
+        <div>
+          <div class="flex items-center gap-1.5 mb-1">
+            <span class="w-2 h-2 rounded-full bg-blue-500 inline-block"></span>
+            <span class="text-xs text-gray-400 font-semibold">GA4</span>
+          </div>
+          <span class="text-2xl font-bold text-gray-800" id="kpiGA4Su">129</span>
+        </div>
+        <div class="w-px self-stretch bg-gray-100"></div>
+        <div>
+          <div class="flex items-center gap-1.5 mb-1">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+            <span class="text-xs text-gray-400 font-semibold">Metabase</span>
+          </div>
+          <span class="text-2xl font-bold text-gray-800" id="kpiMBSu">206</span>
+        </div>
+      </div>
+    </div>
+    <div class="card p-6 border-2 border-amber-400">
+      <p class="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-3">회원가입율</p>
+      <div class="flex items-center gap-6">
+        <div>
+          <div class="flex items-center gap-1.5 mb-1">
+            <span class="w-2 h-2 rounded-full bg-blue-500 inline-block"></span>
+            <span class="text-xs text-gray-400 font-semibold">GA4</span>
+          </div>
+          <span class="text-2xl font-bold text-gray-800" id="kpiGA4Cvr">3.38%</span>
+        </div>
+        <div class="w-px self-stretch bg-gray-100"></div>
+        <div>
+          <div class="flex items-center gap-1.5 mb-1">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+            <span class="text-xs text-gray-400 font-semibold">Metabase</span>
+          </div>
+          <span class="text-2xl font-bold text-gray-800" id="kpiMBCvr">5.4%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 상단: 주차별(좌) + 전환퍼널(우) -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+
+    <!-- 주차별 -->
+    <div class="card p-6">
+      <h3 class="text-base font-bold text-gray-700 mb-1">주차별 유입 및 회원가입 추이</h3>
+      <p class="text-sm text-gray-400 mb-3">당월 기준</p>
+      <canvas id="weeklyAprilChart" height="235" style="display: block; box-sizing: border-box; height: 235px; width: 397.5px;" width="397"></canvas>
+      <!-- 방문자수 수동 입력 -->
+      <div class="grid grid-cols-4 gap-1.5 mt-3">
+        <div>
+          <label class="text-xs text-gray-300 block mb-0.5">1주차</label>
+          <input type="number" id="wv1" value="1710" min="0"
+            class="w-full border border-gray-200 rounded px-2 py-1 text-xs text-gray-600 focus:outline-none focus:border-blue-400"
+            oninput="updateWeeklyVisitors()">
+        </div>
+        <div>
+          <label class="text-xs text-gray-300 block mb-0.5">2주차</label>
+          <input type="number" id="wv2" value="1532" min="0"
+            class="w-full border border-gray-200 rounded px-2 py-1 text-xs text-gray-600 focus:outline-none focus:border-blue-400"
+            oninput="updateWeeklyVisitors()">
+        </div>
+        <div>
+          <label class="text-xs text-gray-300 block mb-0.5">3주차</label>
+          <input type="number" id="wv3" value="575" min="0"
+            class="w-full border border-gray-200 rounded px-2 py-1 text-xs text-gray-600 focus:outline-none focus:border-blue-400"
+            oninput="updateWeeklyVisitors()">
+        </div>
+        <div>
+          <label class="text-xs text-gray-300 block mb-0.5">4주차</label>
+          <input type="number" id="wv4" value="" min="0" placeholder="-"
+            class="w-full border border-gray-200 rounded px-2 py-1 text-xs text-gray-600 focus:outline-none focus:border-blue-400"
+            oninput="updateWeeklyVisitors()">
+        </div>
+      </div>
+    </div>
+
+    <!-- 전환 퍼널 -->
+    <div class="card p-6">
+      <h3 class="text-base font-bold text-gray-700 mb-1">전환 퍼널</h3>
+      <p class="text-sm text-gray-400 mb-5">당월 기준</p>
+      <canvas id="funnelChart" height="212" width="397" style="display: block; box-sizing: border-box; height: 212px; width: 397.5px;"></canvas>
+      <div class="mt-5 grid grid-cols-4 gap-2">
+        <div class="bg-gray-50 rounded-lg p-3 text-center">
+          <p class="text-sm text-gray-400 mb-1">유입→무료체험</p>
+          <p class="text-sm font-bold text-red-400"><span id="funnelDrop0">70.1</span>% <span class="font-normal text-xs text-gray-400">이탈</span></p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3 text-center">
+          <p class="text-sm text-gray-400 mb-1">무료체험→계정</p>
+          <p class="text-sm font-bold text-amber-400"><span id="funnelDrop1">47.3</span>% <span class="font-normal text-xs text-gray-400">이탈</span></p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3 text-center">
+          <p class="text-sm text-gray-400 mb-1">계정→가입정책</p>
+          <p class="text-sm font-bold text-emerald-400"><span id="funnelDrop2">17.9</span>% <span class="font-normal text-xs text-gray-400">이탈</span></p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-3 text-center">
+          <p class="text-sm text-gray-400 mb-1">정책→회원가입</p>
+          <p class="text-sm font-bold text-red-400"><span id="funnelDrop3">73.9</span>% <span class="font-normal text-xs text-gray-400">이탈</span></p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 월별 유입 및 가입 추이 — 1단 -->
+  <div class="card p-6 mb-6">
+    <h3 class="text-base font-bold text-gray-700 mb-5">월별 유입 및 가입 추이</h3>
+    <canvas id="monthlyTopChart" height="291" width="874" style="display: block; box-sizing: border-box; height: 291.4px; width: 874.2px;"></canvas>
+  </div>
+
+  <!-- 월별 전환율 + 유료전환 2열 -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <div class="card p-6">
+      <h3 class="text-base font-bold text-gray-700 mb-5">월별 회원가입율 추이</h3>
+      <canvas id="cvrTrendTopChart" height="265" width="397" style="display: block; box-sizing: border-box; height: 265px; width: 397.5px;"></canvas>
+    </div>
+    <div class="card p-6">
+      <h3 class="text-base font-bold text-gray-700 mb-1">월별 유료 전환 추이</h3>
+      <p class="text-sm text-gray-400 mb-5">가입월 기준 유료 전환 집계</p>
+      <canvas id="paidConvChart" height="265" width="397" style="display: block; box-sizing: border-box; height: 265px; width: 397.5px;"></canvas>
+    </div>
+  </div>
+
+  <!-- 채널별 회원가입 비중 + 전환율 -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <div class="card p-6">
+      <h3 class="text-base font-bold text-gray-700 mb-1">채널별 회원가입 비중</h3>
+      <p class="text-sm text-gray-400 mb-1">당월 기준</p>
+      <canvas id="channelVisitChart" height="397" width="397" style="display: block; box-sizing: border-box; height: 397.5px; width: 397.5px;"></canvas>
+    </div>
+    <div class="card p-6">
+      <h3 class="text-base font-bold text-gray-700 mb-1">채널별 회원가입 전환율</h3>
+      <p class="text-sm text-gray-400 mb-5">당월 기준</p>
+      <canvas id="cvrChart" height="265" width="397" style="display: block; box-sizing: border-box; height: 265px; width: 397.5px;"></canvas>
+    </div>
+  </div>
+
+  <!-- 3개월 채널 비중 추이 -->
+  <div class="card p-6 mb-6">
+    <h3 class="text-base font-bold text-gray-700 mb-5">채널별 회원가입 비중 추이</h3>
+    <canvas id="channelTrendChart" height="291" width="874" style="display: block; box-sizing: border-box; height: 291.4px; width: 874.2px;"></canvas>
+  </div>
+
+  <!-- 유료 광고 매체별 효율 -->
+  <div class="card p-6 mb-6">
+    <h3 class="text-base font-bold text-gray-700 mb-1">유료 광고 매체별 효율</h3>
+    <p class="text-sm text-gray-400 mb-4">당월 기준</p>
+
+    <!-- KPI 카드 -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" id="adKpiCards">
+      <div class="border border-gray-100 rounded-xl p-4 border-t-4 border-t-blue-500">
+        <p class="text-xs text-gray-400 font-semibold mb-3">Google 키워드 광고</p>
+        <div class="grid grid-cols-3 gap-1 text-center mb-3">
+          <div><p class="text-sm text-gray-400 mb-0.5">유입</p><p class="text-sm font-bold text-gray-800" id="kpi_v_google">1223</p></div>
+          <div><p class="text-sm text-gray-400 mb-0.5">가입</p><p class="text-sm font-bold text-gray-800" id="kpi_su_google">52</p></div>
+          <div><p class="text-sm text-gray-400 mb-0.5">가입율</p><p class="text-sm font-bold text-blue-500" id="kpi_cvr_google">4.25%</p></div>
+        </div>
+        <div class="border-t border-gray-100 pt-3 grid grid-cols-2 gap-1 text-center">
+          <div><p class="text-sm text-gray-400 mb-0.5">광고비</p><p class="text-sm font-bold text-gray-700" id="kpi_cost_google">250만</p></div>
+          <div><p class="text-sm text-gray-400 mb-0.5">CPA</p><p class="text-sm font-bold text-blue-500" id="kpi_cpa_google">5만</p></div>
+        </div>
+      </div>
+      <div class="border border-gray-100 rounded-xl p-4 border-t-4 border-t-violet-500">
+        <p class="text-xs text-gray-400 font-semibold mb-3">GDN 광고</p>
+        <div class="grid grid-cols-3 gap-1 text-center mb-3">
+          <div><p class="text-sm text-gray-400 mb-0.5">유입</p><p class="text-sm font-bold text-gray-800" id="kpi_v_gdn">984</p></div>
+          <div><p class="text-sm text-gray-400 mb-0.5">가입</p><p class="text-sm font-bold text-gray-800" id="kpi_su_gdn">7</p></div>
+          <div><p class="text-sm text-gray-400 mb-0.5">가입율</p><p class="text-sm font-bold text-violet-500" id="kpi_cvr_gdn">0.71%</p></div>
+        </div>
+        <div class="border-t border-gray-100 pt-3 grid grid-cols-2 gap-1 text-center">
+          <div><p class="text-sm text-gray-400 mb-0.5">광고비</p><p class="text-sm font-bold text-gray-700" id="kpi_cost_gdn">100만</p></div>
+          <div><p class="text-sm text-gray-400 mb-0.5">CPA</p><p class="text-sm font-bold text-violet-500" id="kpi_cpa_gdn">14만</p></div>
+        </div>
+      </div>
+      <div class="border border-gray-100 rounded-xl p-4 border-t-4 border-t-emerald-500">
+        <p class="text-xs text-gray-400 font-semibold mb-3">Naver 검색광고</p>
+        <div class="grid grid-cols-3 gap-1 text-center mb-3">
+          <div><p class="text-sm text-gray-400 mb-0.5">유입</p><p class="text-sm font-bold text-gray-800" id="kpi_v_naver">243</p></div>
+          <div><p class="text-sm text-gray-400 mb-0.5">가입</p><p class="text-sm font-bold text-gray-800" id="kpi_su_naver">7</p></div>
+          <div><p class="text-sm text-gray-400 mb-0.5">가입율</p><p class="text-sm font-bold text-emerald-500" id="kpi_cvr_naver">2.88%</p></div>
+        </div>
+        <div class="border-t border-gray-100 pt-3 grid grid-cols-2 gap-1 text-center">
+          <div><p class="text-sm text-gray-400 mb-0.5">광고비</p><p class="text-sm font-bold text-gray-700" id="kpi_cost_naver">210만</p></div>
+          <div><p class="text-sm text-gray-400 mb-0.5">CPA</p><p class="text-sm font-bold text-emerald-500" id="kpi_cpa_naver">30만</p></div>
+        </div>
+      </div>
+      <div class="border border-gray-100 rounded-xl p-4 border-t-4 border-t-amber-500">
+        <p class="text-xs text-gray-400 font-semibold mb-3">카페24 배너 광고</p>
+        <div class="grid grid-cols-3 gap-1 text-center mb-3">
+          <div><p class="text-sm text-gray-400 mb-0.5">유입</p><p class="text-sm font-bold text-gray-800" id="kpi_v_cafe24">282</p></div>
+          <div><p class="text-sm text-gray-400 mb-0.5">가입</p><p class="text-sm font-bold text-gray-800" id="kpi_su_cafe24">17</p></div>
+          <div><p class="text-sm text-gray-400 mb-0.5">가입율</p><p class="text-sm font-bold text-amber-500" id="kpi_cvr_cafe24">6.03%</p></div>
+        </div>
+        <div class="border-t border-gray-100 pt-3 grid grid-cols-2 gap-1 text-center">
+          <div><p class="text-sm text-gray-400 mb-0.5">광고비</p><p class="text-sm font-bold text-gray-700" id="kpi_cost_cafe24">369만</p></div>
+          <div><p class="text-sm text-gray-400 mb-0.5">CPA</p><p class="text-sm font-bold text-amber-500" id="kpi_cpa_cafe24">22만</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 비용 효율 차트 2종 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+      <div>
+        <p class="text-xs font-semibold text-gray-500 mb-3">CPA (가입 1명당 비용)</p>
+        <canvas id="adCpaChart" height="257" width="428" style="display: block; box-sizing: border-box; height: 257px; width: 428.3px;"></canvas>
+      </div>
+      <div>
+        <p class="text-xs font-semibold text-gray-500 mb-3">회원가입율 vs CPA 효율</p>
+        <canvas id="adEffChart" height="257" width="428" style="display: block; box-sizing: border-box; height: 257px; width: 428.3px;"></canvas>
+      </div>
+    </div>
+
+    <!-- 광고비 입력 -->
+    <div class="border-t border-gray-100 pt-5">
+      <p class="text-sm font-semibold text-gray-600 mb-3">광고비 입력 (만원)</p>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div>
+          <label class="text-xs text-gray-400 block mb-1">Google 키워드</label>
+          <input id="cost_google" type="number" value="250" min="0" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-blue-400" oninput="updateAdEff()">
+        </div>
+        <div>
+          <label class="text-xs text-gray-400 block mb-1">GDN</label>
+          <input id="cost_gdn" type="number" value="100" min="0" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-violet-400" oninput="updateAdEff()">
+        </div>
+        <div>
+          <label class="text-xs text-gray-400 block mb-1">Naver 검색광고</label>
+          <input id="cost_naver" type="number" value="210" min="0" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-emerald-400" oninput="updateAdEff()">
+        </div>
+        <div>
+          <label class="text-xs text-gray-400 block mb-1">카페24 배너</label>
+          <input id="cost_cafe24" type="number" value="369" min="0" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-amber-400" oninput="updateAdEff()">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INSIGHTS -->
+  <div class="card p-8 mb-8">
+    <h3 class="text-lg font-bold text-gray-800 mb-6">주요 인사이트</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div>
+        <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">검색/배너광고 독주</span>
+        <p class="text-base text-gray-600 mt-3 leading-relaxed">Paid Search 유입 <b>1,181명 (38.6%)</b>으로 단일 채널 최대. 무료체험 클릭의 85.9%를 견인하는 핵심 획득 채널.</p>
+      </div>
+      <div>
+        <span class="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-bold">가입 병목 구간</span>
+        <p class="text-base text-gray-600 mt-3 leading-relaxed">가입정책 동의(494명) → 회원가입(129명) 이탈 <b>73.9%</b>. 이 구간이 최대 병목으로 UX 개선이 필요합니다.</p>
+      </div>
+      <div>
+        <span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold">카페24 고효율</span>
+        <p class="text-base text-gray-600 mt-3 leading-relaxed">카페24 전환율 <b>7.9%</b>로 최상위. 유입 볼륨은 작지만 실제 전환 효율이 가장 높은 채널.</p>
+      </div>
+      <div>
+        <span class="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-bold">데이터 편차</span>
+        <p class="text-base text-gray-600 mt-3 leading-relaxed">GA4(129명) vs Metabase(160명) <b>31명 차이</b>. 실제 DB에 가까운 Metabase 기준으로 성과 판단을 권장합니다.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- RAW TABLE 누적 -->
+  <div class="card p-6 overflow-x-auto mb-6">
+    <div class="flex items-center justify-between mb-1">
+      <h3 class="text-base font-bold text-gray-700">Raw Data — 소스별 전체 (GA4) <span class="text-xs font-normal text-gray-400 ml-1">누적</span></h3>
+    </div>
+    <p class="text-sm text-gray-400 mb-5" id="accPeriodLabel">4/1~4/20 누적</p>
+    <table class="w-full text-base text-left">
+      <thead>
+        <tr class="border-b border-gray-100">
+          <th class="pb-3 text-sm text-gray-400 font-semibold uppercase tracking-wide pr-4">구분 / 소스</th>
+          <th class="pb-3 text-sm text-gray-400 font-semibold uppercase tracking-wide text-right px-3">유입</th>
+          <th class="pb-3 text-sm text-gray-400 font-semibold uppercase tracking-wide text-right px-3">무료체험</th>
+          <th class="pb-3 text-sm text-gray-400 font-semibold uppercase tracking-wide text-right px-3">계정생성</th>
+          <th class="pb-3 text-sm text-gray-400 font-semibold uppercase tracking-wide text-right px-3">가입정책</th>
+          <th class="pb-3 text-sm text-gray-400 font-semibold uppercase tracking-wide text-right px-3">회원가입</th>
+          <th class="pb-3 text-sm text-gray-400 font-semibold uppercase tracking-wide text-right pl-3">전환율</th>
+        </tr>
+      </thead>
+      <tbody id="rawTableBody"></tbody>
+      <tfoot>
+        <tr class="border-t-2 border-gray-200 bg-gray-50">
+          <td class="py-3 pr-4 font-bold text-gray-800">합계</td>
+          <td class="py-3 px-3 text-right font-bold text-gray-800" id="accTotalV">3817</td>
+          <td class="py-3 px-3 text-right font-bold text-gray-800" id="accTotalFt">1142</td>
+          <td class="py-3 px-3 text-right font-bold text-gray-800" id="accTotalAc">602</td>
+          <td class="py-3 px-3 text-right font-bold text-gray-800" id="accTotalPo">494</td>
+          <td class="py-3 px-3 text-right font-bold text-gray-800" id="accTotalSu">129</td>
+          <td class="py-3 pl-3 text-right"><span id="accTotalCvr" class="bg-blue-100 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded-full">3.6%</span></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+
+</div>
+<script>
+const COLOR_GA = '#7c3aed';
+const COLOR_MB = '#10b981';
+// 원본 HTML 스냅샷 (데이터 주입 전 상태)
+const _ORIGINAL_HTML = document.documentElement.outerHTML;
+
+// RAW TABLE
+const rawData = [
+  { cat: 'direct', rows: [
+    { name: 'direct', v:770, ft:45, ac:137, po:87, su:32, cvr:'4.2%', cvrType:'mid' },
+  ]},
+  { cat: 'unassigned', rows: [
+    { name: 'blog', v:28, ft:3, ac:2, po:2, su:2, cvr:'7.1%', cvrType:'high' },
+    { name: 'outstanding', v:0, ft:0, ac:0, po:0, su:0, cvr:'-', cvrType:'null' },
+    { name: 'qletter', v:0, ft:0, ac:0, po:0, su:0, cvr:'-', cvrType:'null' },
+    { name: 'iboss', v:3, ft:0, ac:0, po:0, su:0, cvr:'0%', cvrType:'null' },
+    { name: 'openads', v:2, ft:0, ac:0, po:0, su:0, cvr:'0%', cvrType:'null' },
+    { name: 'stibee', v:15, ft:1, ac:1, po:1, su:0, cvr:'0%', cvrType:'null' },
+    { name: 'etc.', v:0, ft:0, ac:0, po:0, su:0, cvr:'-', cvrType:'null' },
+  ]},
+  { cat: 'paid search', rows: [
+    { name: 'brand_Search', v:43, ft:8, ac:9, po:7, su:4, cvr:'9.3%', cvrType:'high' },
+    { name: 'google', v:1223, ft:931, ac:340, po:307, su:52, cvr:'4.3%', cvrType:'mid' },
+    { name: 'naver', v:200, ft:46, ac:19, po:17, su:3, cvr:'1.5%', cvrType:'low' },
+    { name: 'instagram', v:7, ft:2, ac:0, po:0, su:0, cvr:'0%', cvrType:'null' },
+  ]},
+  { cat: 'organic search', rows: [
+    { name: 'google', v:178, ft:28, ac:15, po:12, su:7, cvr:'3.9%', cvrType:'mid' },
+    { name: 'naver', v:24, ft:8, ac:5, po:5, su:3, cvr:'12.5%', cvrType:'high' },
+    { name: 'etc.(bing)', v:8, ft:3, ac:2, po:2, su:1, cvr:'12.5%', cvrType:'high' },
+  ]},
+  { cat: 'referral', rows: [
+    { name: 'catenoid.net / charlla.io', v:11, ft:0, ac:0, po:0, su:0, cvr:'0%', cvrType:'null' },
+    { name: 'cafe24 (ad)', v:262, ft:8, ac:47, po:30, su:17, cvr:'6.5%', cvrType:'high' },
+    { name: 'makeshop', v:0, ft:0, ac:0, po:0, su:0, cvr:'-', cvrType:'null' },
+    { name: 'ai', v:4, ft:0, ac:0, po:0, su:0, cvr:'0%', cvrType:'null' },
+    { name: 'etc.', v:35, ft:5, ac:5, po:5, su:1, cvr:'2.9%', cvrType:'low' },
+  ]},
+  { cat: 'display', rows: [
+    { name: 'GDN banner', v:984, ft:54, ac:20, po:19, su:7, cvr:'0.7%', cvrType:'low' },
+    { name: 'CAFE24 banner', v:20, ft:0, ac:0, po:0, su:0, cvr:'0%', cvrType:'null' },
+    { name: 'IBOSS banner', v:0, ft:0, ac:0, po:0, su:0, cvr:'-', cvrType:'null' },
+    { name: 'Outstanding banner', v:0, ft:0, ac:0, po:0, su:0, cvr:'-', cvrType:'null' },
+    { name: 'etc.(GFA, DMP..)', v:0, ft:0, ac:0, po:0, su:0, cvr:'-', cvrType:'null' },
+  ]},
+  { cat: 'SNS', rows: [
+    { name: 'facebook / linkedin', v:0, ft:0, ac:0, po:0, su:0, cvr:'-', cvrType:'null' },
+  ]},
+];
+const cvrColors = { high:'bg-emerald-100 text-emerald-700', mid:'bg-blue-100 text-blue-700', low:'bg-red-100 text-red-700', null:'bg-gray-100 text-gray-400' };
+const tbody = document.getElementById('rawTableBody');
+rawData.forEach(({ cat, rows }) => {
+  tbody.innerHTML += `<tr class="bg-gray-50 border-t border-gray-100"><td colspan="7" class="py-2 pr-4 text-xs font-bold text-gray-400 uppercase tracking-widest pl-4">${cat}</td></tr>`;
+  rows.forEach(r => {
+    const z = v => v === 0 ? `<span class="text-gray-300">${v}</span>` : v.toLocaleString();
+    tbody.innerHTML += `<tr class="border-t border-gray-50 hover:bg-gray-50 transition-colors">
+      <td class="py-2.5 pr-4 text-gray-700 pl-8">${r.name}</td>
+      <td class="py-2.5 px-3 text-right text-gray-600 tabular-nums">${z(r.v)}</td>
+      <td class="py-2.5 px-3 text-right text-gray-600 tabular-nums">${z(r.ft)}</td>
+      <td class="py-2.5 px-3 text-right text-gray-600 tabular-nums">${z(r.ac)}</td>
+      <td class="py-2.5 px-3 text-right text-gray-600 tabular-nums">${z(r.po)}</td>
+      <td class="py-2.5 px-3 text-right text-gray-600 tabular-nums">${z(r.su)}</td>
+      <td class="py-2.5 pl-3 text-right"><span class="text-xs font-semibold px-2 py-0.5 rounded-full ${cvrColors[r.cvrType]}">${r.cvr}</span></td>
+    </tr>`;
+  });
+});
+
+// 주차별 4월
+window.weeklyAprilChartRef = new Chart(document.getElementById('weeklyAprilChart'), {
+  data: {
+    labels: [['4월 1주차', '(4/1~4/8)'], ['4월 2주차', '(4/9~4/15)'], ['4월 3주차', '(4/16~4/22)'], ['4월 4주차', '(4/23~4/30)']],
+    datasets: [
+      { type:'bar',  label:'방문자',       data:[1710,1532,917,null], backgroundColor:'rgba(59,130,246,0.15)', borderColor:'#3b82f6', borderWidth:2, borderRadius:6, borderSkipped:false, yAxisID:'y', order:3 },
+      { type:'line', label:'Metabase 가입', data:[79,75,46,null],      borderColor:COLOR_MB, backgroundColor:'rgba(16,185,129,0.06)', borderWidth:2.5, pointBackgroundColor:COLOR_MB, pointRadius:6, borderDash:[4,3], tension:0, yAxisID:'y2', order:1 },
+      { type:'line', label:'GA4 가입',      data:[61,49,19,null],      borderColor:COLOR_GA, backgroundColor:'rgba(124,58,237,0.08)', borderWidth:2.5, pointBackgroundColor:COLOR_GA, pointRadius:6, tension:0, yAxisID:'y2', order:2 }
+    ]
+  },
+  options: {
+    responsive:true, interaction:{mode:'index',intersect:false},
+    layout:{ padding:{ top:30 } },
+    plugins:{
+      legend:{position:'bottom',labels:{color:'#111827',font:{size:14,family:'Pretendard'},boxWidth:8,boxHeight:8,padding:14}},
+      tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.parsed.y?.toLocaleString()}명`}}
+    },
+    scales:{
+      x:{grid:{display:false},ticks:{color:'#111827',font:{size:14,family:'Pretendard'}}},
+      y:{position:'left',grid:{color:'#f1f5f9'},ticks:{color:'#111827',font:{size:13},callback:v=>v.toLocaleString()},title:{display:true,text:'방문자',color:'#111827',font:{size:13}}},
+      y2:{position:'right',grid:{display:false},ticks:{color:'#111827',font:{size:13}},title:{display:true,text:'가입',color:'#111827',font:{size:13}},min:0}
+    }
+  },
+  plugins:[{
+    id:'weeklyLabels',
+    afterDatasetDraw(chart, args) {
+      if (args.index !== 1 && args.index !== 2) return;
+      const {ctx} = chart;
+      const ds = chart.data.datasets[args.index];
+      // index 1 = MB(초록) → 선 위, index 2 = GA4(보라) → 선 아래
+      const isMB = args.index === 1;
+      const color = isMB ? COLOR_MB : COLOR_GA;
+      chart.getDatasetMeta(args.index).data.forEach((pt, i) => {
+        const val = ds.data[i];
+        if (val == null) return;
+        ctx.save();
+        ctx.font = 'bold 11px Pretendard, sans-serif';
+        ctx.fillStyle = color;
+        ctx.textAlign = 'center';
+        if (isMB) {
+          ctx.textBaseline = 'bottom';
+          ctx.fillText(val + '명', pt.x, pt.y - 14);
+        } else {
+          ctx.textBaseline = 'top';
+          ctx.fillText(val + '명', pt.x, pt.y + 14);
+        }
+        ctx.restore();
+      });
+    }
+  }]
+});
+
+// 월별 유입+가입
+window.monthlyTopChartRef = new Chart(document.getElementById('monthlyTopChart'), {
+  data: {
+    labels: ['1월','2월','3월','4월(~20)'],
+    datasets: [
+      { type:'bar',  label:'방문자',           data:[5046,4687,4532,3817], backgroundColor:'rgba(59,130,246,0.12)', borderColor:'#3b82f6', borderWidth:2, borderRadius:6, borderSkipped:false, yAxisID:'y',  order:4 },
+      { type:'line', label:'Metabase 가입', data:[326,245,198,200],    borderColor:COLOR_MB, backgroundColor:'rgba(16,185,129,0.06)', borderWidth:2.5, pointBackgroundColor:COLOR_MB, pointRadius:5, borderDash:[4,3], tension:0.3, yAxisID:'y2', order:1 },
+      { type:'line', label:'GA4 가입',      data:[317,222,153,129],    borderColor:COLOR_GA, backgroundColor:'rgba(124,58,237,0.08)', borderWidth:2.5, pointBackgroundColor:COLOR_GA, pointRadius:5, tension:0.3, yAxisID:'y2', order:2 },
+      { type:'line', label:'목표 가입 (180명)', data:[180,180,180,180],    borderColor:'#f97316', backgroundColor:'transparent', borderWidth:1.5, borderDash:[6,4], pointRadius:0, tension:0, yAxisID:'y2', order:0 }
+    ]
+  },
+  options: {
+    responsive:true, interaction:{mode:'index',intersect:false},
+    plugins:{
+      legend:{position:'bottom',labels:{color:'#111827',font:{size:14,family:'Pretendard'},boxWidth:8,boxHeight:8,padding:14}},
+      tooltip:{callbacks:{label:ctx=>ctx.dataset.label.includes('목표') ? ` ${ctx.dataset.label}` : ` ${ctx.dataset.label}: ${ctx.parsed.y?.toLocaleString()}명`}}
+    },
+    scales:{
+      x:{grid:{display:false},ticks:{color:'#111827',font:{size:14,family:'Pretendard'}}},
+      y:{position:'left',grid:{color:'#f1f5f9'},ticks:{color:'#111827',font:{size:13},callback:v=>v.toLocaleString()},title:{display:true,text:'방문자',color:'#111827',font:{size:13}}},
+      y2:{position:'right',grid:{display:false},ticks:{color:'#111827',font:{size:13}},title:{display:true,text:'회원가입',color:'#111827',font:{size:13}},min:0}
+    }
+  },
+  plugins:[{
+    id:'targetLabelMonthly',
+    afterDraw(chart) {
+      const {ctx, scales} = chart;
+      const y2 = scales.y2;
+      if (!y2) return;
+      const yPx = y2.getPixelForValue(180);
+      const xRight = chart.chartArea.right;
+      ctx.save();
+      ctx.font = 'bold 12px Pretendard, sans-serif';
+      ctx.fillStyle = '#f97316';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText('목표 180명', xRight, yPx - 4);
+      ctx.restore();
+    }
+  }]
+});
+
+// 월별 전환율 - 꺾은선
+window.cvrTrendChartRef = new Chart(document.getElementById('cvrTrendTopChart'), {
+  type: 'line',
+  data: {
+    labels: ['1월','2월','3월','4월(~20)'],
+    datasets: [
+      { label:'Metabase 가입율',  data:[6.46,5.23,4.37,5.24], borderColor:COLOR_MB, backgroundColor:'transparent', borderWidth:2.5, pointBackgroundColor:COLOR_MB, pointRadius:5, borderDash:[4,3], tension:0.3 },
+      { label:'GA4 가입율', data:[6.28,4.74,3.38,3.38], borderColor:COLOR_GA, backgroundColor:'transparent', borderWidth:2.5, pointBackgroundColor:COLOR_GA, pointRadius:5, tension:0.3 },
+      { label:'목표 가입율 (4%)', data:[4,4,4,4], borderColor:'#f97316', backgroundColor:'transparent', borderWidth:1.5, borderDash:[6,4], pointRadius:0, tension:0 }
+    ]
+  },
+  options: {
+    responsive: true, interaction: { mode: 'index', intersect: false },
+    layout: { padding: { top: 30 } },
+    plugins: {
+      legend: { position: 'bottom', labels: { color: '#111827', font: { size: 14, family: 'Pretendard' }, boxWidth: 10, boxHeight: 10, padding: 16 } },
+      tooltip: { callbacks: { label: ctx => ctx.dataset.label.includes('목표') ? ` ${ctx.dataset.label}` : ` ${ctx.dataset.label}: ${ctx.parsed.y}%` } }
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: '#111827', font: { size: 14, family: 'Pretendard' } }, offset: true },
+      y: { grid: { color: '#f1f5f9' }, ticks: { color: '#111827', font: { size: 13 }, callback: v => v + '%' }, min: 0, max: 9 }
+    }
+  },
+  plugins: [
+    {
+      id: 'cvrLineLabels',
+      afterDatasetDraw(chart, args) {
+        if (args.index === 2) return; // 목표선 캡션 제외
+        const { ctx, data } = chart;
+        const ds = data.datasets[args.index];
+        const isMB = args.index === 0;
+        const color = isMB ? COLOR_MB : COLOR_GA;
+        chart.getDatasetMeta(args.index).data.forEach((pt, i) => {
+          const val = ds.data[i];
+          if (val == null) return;
+          ctx.save();
+          ctx.font = 'bold 14px Pretendard, sans-serif';
+          ctx.fillStyle = color;
+          ctx.textAlign = 'center';
+          if (isMB) {
+            ctx.textBaseline = 'bottom';
+            ctx.fillText(parseFloat(val).toFixed(1) + '%', pt.x, pt.y - 14);
+          } else {
+            ctx.textBaseline = 'top';
+            ctx.fillText(parseFloat(val).toFixed(1) + '%', pt.x, pt.y + 14);
+          }
+          ctx.restore();
+        });
+      }
+    },
+    {
+      id: 'targetLabelCvr',
+      afterDraw(chart) {
+        const {ctx, scales, chartArea} = chart;
+        const y = scales.y;
+        if (!y) return;
+        const yPx = y.getPixelForValue(4);
+        ctx.save();
+        ctx.font = 'bold 12px Pretendard, sans-serif';
+        ctx.fillStyle = '#f97316';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText('목표 4%', chartArea.right, yPx - 4);
+        ctx.restore();
+      }
+    }
+  ]
+});
+
+// 월별 유료 전환
+window.paidConvChartRef = new Chart(document.getElementById('paidConvChart'), {
+  data: {
+    labels: ['1월','2월','3월','4월(~20)'],
+    datasets: [
+      {
+        type: 'bar',
+        label: 'Metabase 가입',
+        data: [326, 245, 198, 200],
+        backgroundColor: 'rgba(16,185,129,0.15)',
+        borderColor: COLOR_MB,
+        borderWidth: 2,
+        borderRadius: 6,
+        borderSkipped: false,
+        yAxisID: 'y',
+        order: 2,
+      },
+      {
+        type: 'bar',
+        label: '유료 전환',
+        data: [37, 23, 24, 4],
+        backgroundColor: 'rgba(236,72,153,0.25)',
+        borderColor: '#ec4899',
+        borderWidth: 2,
+        borderRadius: 6,
+        borderSkipped: false,
+        yAxisID: 'y',
+        order: 3,
+      },
+      {
+        type: 'line',
+        label: '유료전환율',
+        data: [11.3, 9.4, 12.0, 2.0],
+        borderColor: '#f97316',
+        backgroundColor: 'transparent',
+        borderWidth: 2.5,
+        pointBackgroundColor: '#f97316',
+        pointRadius: 5,
+        tension: 0.3,
+        yAxisID: 'y2',
+        order: 1,
+      }
+    ]
+  },
+  options: {
+    responsive: true, interaction: { mode: 'index', intersect: false },
+    layout: { padding: { top: 28 } },
+    plugins: {
+      legend: { position: 'bottom', labels: { color: '#111827', font: { size: 14, family: 'Pretendard' }, boxWidth: 10, boxHeight: 10, padding: 16, sort: (a, b) => { const order = ['Metabase 가입','유료 전환','유료전환율']; return order.indexOf(a.text) - order.indexOf(b.text); } } },
+      tooltip: { callbacks: { label: ctx => ctx.dataset.yAxisID === 'y2' ? ` ${ctx.dataset.label}: ${ctx.parsed.y}%` : ` ${ctx.dataset.label}: ${ctx.parsed.y}명` } }
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: '#111827', font: { size: 14, family: 'Pretendard' } } },
+      y: { position: 'left', grid: { color: '#f1f5f9' }, ticks: { color: '#111827', font: { size: 13 }, callback: v => v + '명' }, min: 0, title: { display: true, text: '명', color: '#111827', font: { size: 12 } } },
+      y2: { position: 'right', grid: { display: false }, ticks: { color: '#111827', font: { size: 13 }, callback: v => v + '%' }, min: 0, max: 20, title: { display: true, text: '전환율', color: '#111827', font: { size: 12 } } }
+    }
+  },
+  plugins: [{
+    id: 'paidConvLabels',
+    afterDatasetDraw(chart, args) {
+      if (args.index !== 2) return; // 꺾은선(전환율)만 레이블
+      const { ctx, data } = chart;
+      const ds = data.datasets[2];
+      chart.getDatasetMeta(2).data.forEach((pt, i) => {
+        const val = ds.data[i];
+        ctx.save();
+        ctx.font = 'bold 13px Pretendard, sans-serif';
+        ctx.fillStyle = '#f97316';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(val + '%', pt.x, pt.y - 6);
+        ctx.restore();
+      });
+    }
+  }]
+});
+const funnelData = [3817, 1142, 602, 494, 129];
+const funnelLabels = ['유입','무료체험','계정생성','가입정책 동의','회원가입'];
+// dropRates[i] = i번째 막대 우측에 표시할 이탈률 (유입→무료체험 이탈률은 무료체험 행에 표시)
+const dropRates = [null, 70.1, 47.3, 17.8, 73.9];
+window.funnelChartRef = new Chart(document.getElementById('funnelChart'), {
+  type:'bar',
+  data: {
+    labels: funnelLabels,
+    datasets: [{ label:'사용자 수', data:funnelData, backgroundColor:['#e2e8f0','#cbd5e1','#94a3b8','#64748b','#3b82f6'], borderRadius:6, borderSkipped:false }]
+  },
+  options: {
+    indexAxis:'y', responsive:true,
+    layout: { padding: { right: 110 } },
+    plugins:{
+      legend:{display:false},
+      tooltip:{callbacks:{label:ctx=>` ${ctx.parsed.x.toLocaleString()}명`}}
+    },
+    scales:{
+      x:{grid:{color:'#f1f5f9'},ticks:{color:'#111827',font:{size:14}},max:3600},
+      y:{grid:{display:false},ticks:{color:'#111827',font:{size:14,family:'Pretendard'}}}
+    }
+  },
+  plugins:[{
+    id:'funnelDropLabels',
+    afterDatasetDraw(chart) {
+      const {ctx} = chart;
+      chart.getDatasetMeta(0).data.forEach((bar, i) => {
+        const val = funnelData[i];
+        const drop = dropRates[i];
+        const xEnd = bar.x;
+        const y = bar.y;
+        ctx.save();
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.font = '10px Pretendard, sans-serif';
+        ctx.fillStyle = '#374151';
+        const numText = val.toLocaleString() + '명';
+        if (drop !== null) {
+          ctx.fillText(numText, xEnd + 8, y);
+          const numWidth = ctx.measureText(numText).width;
+          const color = '#9ca3af';
+          ctx.font = '10px Pretendard, sans-serif';
+          ctx.fillStyle = color;
+          ctx.fillText(' (▼' + drop + '% 이탈)', xEnd + 8 + numWidth, y);
+        } else {
+          ctx.fillText(numText, xEnd + 8, y);
+        }
+        ctx.restore();
+      });
+    }
+  }]
+});
+
+// 채널 데이터
+const channels = [
+  { name:'검색/배너광고', su:66, v:2457, color:'#3b82f6' },
+  { name:'직접 유입', su:32, v:770, color:'#10b981' },
+  { name:'카페24', su:17, v:282, color:'#f59e0b' },
+  { name:'자연유입', su:13, v:242, color:'#06b6d4' },
+  { name:'기타', su:3, v:118, color:'#cbd5e1' },
+];
+const totalSU = 129;
+
+// 도넛
+// 채널별 회원가입 비중
+const totalSuChart = channels.reduce((a,c)=>a+c.su,0);
+window.channelVisitChartRef = new Chart(document.getElementById('channelVisitChart'), {
+  type:'doughnut',
+  data: { labels:channels.map(c=>c.name), datasets:[{data:channels.map(c=>c.su), backgroundColor:channels.map(c=>c.color), borderWidth:0, hoverOffset:4}] },
+  options: {
+    cutout:'45%', responsive:true,
+    plugins:{
+      legend:{position:'right',labels:{color:'#4b5563',font:{size:14,family:'Pretendard'},boxWidth:8,boxHeight:8,padding:10}},
+      tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${ctx.parsed}명 (${(ctx.parsed/totalSuChart*100).toFixed(1)}%)`}},
+    }
+  },
+  plugins:[{
+    id:'doughnutSuPct',
+    afterDatasetDraw(chart) {
+      const {ctx,data} = chart;
+      const total = data.datasets[0].data.reduce((a,b)=>a+b,0);
+      chart.getDatasetMeta(0).data.forEach((arc,i) => {
+        const val = data.datasets[0].data[i];
+        const pct = (val/total*100).toFixed(1);
+        if (parseFloat(pct) < 4) return;
+        const {x,y} = arc.tooltipPosition();
+        ctx.save();
+        ctx.textAlign='center'; ctx.fillStyle='#fff';
+        ctx.font='bold 13px Pretendard,sans-serif';
+        ctx.textBaseline='middle';
+        ctx.fillText(pct+'% ('+val+'명)', x, y);
+        ctx.restore();
+      });
+    }
+  }]
+});
+
+// CVR 바
+const cvrSorted = [...channels].map(c=>({...c,cvr:+(c.su/c.v*100).toFixed(1)})).sort((a,b)=>b.cvr-a.cvr);
+window.cvrChartRef = new Chart(document.getElementById('cvrChart'), {
+  type:'bar',
+  data: { labels:cvrSorted.map(c=>c.name), datasets:[{label:'전환율', data:cvrSorted.map(c=>c.cvr), backgroundColor:cvrSorted.map(c=>c.color+'bb'), borderColor:cvrSorted.map(c=>c.color), borderWidth:2, borderRadius:6, borderSkipped:false}] },
+  options: {
+    indexAxis:'y', responsive:true,
+    layout:{ padding:{ right: 140 } },
+    plugins:{
+      legend:{display:false},
+      tooltip:{callbacks:{label:ctx=>{
+        const d=cvrSorted[ctx.dataIndex];
+        return [`전환율: ${ctx.parsed.x}%`, `유입 ${d.v.toLocaleString()}명 → 가입 ${d.su}명`];
+      }}}
+    },
+    scales:{
+      x:{grid:{color:'#f1f5f9'}, ticks:{color:'#374151',font:{size:14},callback:v=>Number.isInteger(v)?v+'%':v.toFixed(1)+'%'}},
+      y:{grid:{display:false},ticks:{color:'#4b5563',font:{size:14,family:'Pretendard'}}}
+    }
+  },
+  plugins:[{
+    id:'barPct',
+    afterDatasetDraw(chart) {
+      const {ctx} = chart;
+      chart.getDatasetMeta(0).data.forEach((bar,i) => {
+        const d = cvrSorted[i];
+        const x = bar.x; const y = bar.y; const w = bar.width;
+        if (w < 40) return;
+        ctx.save();
+        ctx.font = 'bold 13px Pretendard, sans-serif';
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(d.cvr + '%', x - 8, y - 7);
+        ctx.font = '11px Pretendard, sans-serif';
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.fillText(`유입 ${d.v.toLocaleString()} · 가입 ${d.su}`, x - 8, y + 7);
+        ctx.restore();
+      });
+    }
+  }]
+});
+
+// 3개월 채널 비중
+window.channelTrendChartRef = new Chart(document.getElementById('channelTrendChart'), {
+  type:'bar',
+  data: {
+    labels: ['1월','2월','3월','4월(~20)'],
+    datasets: [
+      { label:'검색/배너광고', data:[47, 43, 44, 51.2], su:[149,96,87,66],  backgroundColor:'#3b82f6cc', borderColor:'#3b82f6', borderWidth:1.5, borderRadius:4, borderSkipped:false },
+      { label:'직접 유입',     data:[22, 25, 29, 24.8], su:[70, 56,57,32],  backgroundColor:'#10b981cc', borderColor:'#10b981', borderWidth:1.5, borderRadius:4, borderSkipped:false },
+      { label:'카페24',        data:[19, 18, 17, 13.2], su:[60, 40,34,17],  backgroundColor:'#f59e0bcc', borderColor:'#f59e0b', borderWidth:1.5, borderRadius:4, borderSkipped:false },
+      { label:'자연유입',      data:[9,  12, 7,  10.1], su:[29, 27,14,13],  backgroundColor:'#06b6d4cc', borderColor:'#06b6d4', borderWidth:1.5, borderRadius:4, borderSkipped:false },
+      { label:'기타',          data:[3,  2,  3,  0.8],  su:[9,  4,  6, 1],  backgroundColor:'#cbd5e1cc', borderColor:'#cbd5e1', borderWidth:1.5, borderRadius:4, borderSkipped:false },
+    ]
+  },
+  options: {
+    responsive:true, interaction:{mode:'index',intersect:false},
+    plugins:{ legend:{position:'bottom',labels:{color:'#4b5563',font:{size:14,family:'Pretendard'},boxWidth:8,boxHeight:8,padding:16}},
+      tooltip:{callbacks:{label:ctx=>{
+        const su = ctx.dataset.su ? ctx.dataset.su[ctx.dataIndex] : null;
+        return ` ${ctx.dataset.label}: ${ctx.parsed.y}%${su!=null?' ('+su+'명)':''}`;
+      }}}
+    },
+    scales:{ x:{grid:{display:false},ticks:{color:'#4b5563',font:{size:15,family:'Pretendard'}}}, y:{grid:{color:'#f1f5f9'},ticks:{color:'#374151',font:{size:14},callback:v=>Number.isInteger(v)?v+'%':v.toFixed(1)+'%'},max:70} }
+  },
+  plugins:[{
+    id:'barPctLabel',
+    afterDatasetDraw(chart,args) {
+      const {ctx} = chart;
+      const ds = chart.data.datasets[args.index];
+      chart.getDatasetMeta(args.index).data.forEach((bar,i) => {
+        const val = ds.data[i];
+        const su  = ds.su ? ds.su[i] : null;
+        if (val < 4) return;
+        ctx.save();
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        // 비율
+        ctx.font='bold 13px Pretendard,sans-serif'; ctx.fillStyle='#fff';
+        ctx.fillText(val+'%', bar.x, bar.y+(bar.height/2)-7);
+        // 절대값
+        if (su != null) {
+          ctx.font='11px Pretendard,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.85)';
+          ctx.fillText(su+'명', bar.x, bar.y+(bar.height/2)+7);
+        }
+        ctx.restore();
+      });
+    }
+  }]
+});
+
+// ── 유료 광고 효율 차트
+const adEff = [{name:'Google\nKeyword',v:1223,su:52,cost:2500000,color:'#3b82f6'},{name:'GDN',v:984,su:7,cost:1000000,color:'#7c3aed'},{name:'Naver\n검색광고',v:243,su:7,cost:2100000,color:'#10b981'},{name:'카페24\n배너',v:282,su:17,cost:3690000,color:'#f59e0b'},];
+adEff.forEach(d => { d.cpa=Math.round(d.cost/d.su); d.cvr=+(d.su/d.v*100).toFixed(2); });
+const adLabels = adEff.map(d=>d.name);
+const adColors = adEff.map(d=>d.color);
+
+const adCpaChartRef = new Chart(document.getElementById('adCpaChart'), {
+  type:'bar',
+  data:{ labels:adLabels, datasets:[{ label:'CPA', data:adEff.map(d=>d.cpa), backgroundColor:adColors.map(c=>c+'33'), borderColor:adColors, borderWidth:2, borderRadius:6, borderSkipped:false }] },
+  options:{ responsive:true, plugins:{ legend:{display:false}, tooltip:{callbacks:{label:ctx=>` CPA: ${ctx.parsed.y.toLocaleString()}원`}} },
+    scales:{ x:{grid:{display:false},ticks:{color:'#111827',font:{size:14,family:'Pretendard'}}}, y:{grid:{color:'#f1f5f9'}, max:400000, ticks:{stepSize:100000, color:'#111827',font:{size:13},callback:v=>v>=10000?Math.round(v/10000)+'만원':v+'원'}} } },
+  plugins:[{ id:'cpaLbl', afterDatasetDraw(chart) {
+    const {ctx}=chart;
+    chart.getDatasetMeta(0).data.forEach((bar,i)=>{
+      const val=adEff[i].cpa;
+      ctx.save(); ctx.font='bold 13px Pretendard,sans-serif'; ctx.fillStyle=adEff[i].color; ctx.textAlign='center'; ctx.textBaseline='bottom';
+      ctx.fillText(val>=10000?Math.round(val/10000)+'만원':val+'원', bar.x, bar.y-4); ctx.restore();
+    });
+  }}]
+});
+
+const maxCost=Math.max(...adEff.map(d=>d.cost));
+const adEffChartRef = new Chart(document.getElementById('adEffChart'), {
+  type:'bubble',
+  data:{ datasets:adEff.map(d=>({ label:d.name, data:[{x:d.cvr, y:Math.round(d.cpa/10000), r:Math.max(8,d.cost/maxCost*28)}], backgroundColor:d.color+'88', borderColor:d.color, borderWidth:2 })) },
+  options:{ responsive:true,
+    layout:{ padding:{ top:10, right:10 } },
+    plugins:{ legend:{position:'bottom',labels:{color:'#111827',font:{size:14,family:'Pretendard'},boxWidth:8,boxHeight:8,padding:10}},
+      tooltip:{callbacks:{label:ctx=>{ const d=adEff[ctx.datasetIndex]; return [`${d.name.replace('\n',' ')}`,`전환율 ${d.cvr}% / CPA ${Math.round(d.cpa/10000)}만원`,`광고비 ${d.cost/10000}만원`]; }}} },
+    scales:{
+      x:{title:{display:true,text:'회원가입율 (%)',color:'#6b7280',font:{size:13}}, ticks:{color:'#111827',font:{size:13},callback:v=>v+'%'}, grid:{color:'#f1f5f9'}, min:0},
+      y:{title:{display:true,text:'CPA (만원)',color:'#6b7280',font:{size:13}}, ticks:{color:'#111827',font:{size:13},stepSize:10,callback:v=>v+'만'}, grid:{color:'#f1f5f9'}, min:0, max:40}
+    }
+  }
+});
+
+// ── 광고비 입력 → 실시간 업데이트
+function updateAdEff() {
+  const costs = [
+    parseInt(document.getElementById('cost_google').value)||0,
+    parseInt(document.getElementById('cost_gdn').value)||0,
+    parseInt(document.getElementById('cost_naver').value)||0,
+    parseInt(document.getElementById('cost_cafe24').value)||0,
+  ];
+  const sus = [25, 20, 6, 17];
+  const ids = ['google','gdn','naver','cafe24'];
+  const costMult = 10000;
+
+  ids.forEach((id, i) => {
+    const costWon = costs[i] * costMult;
+    const cpa = sus[i] > 0 ? Math.round(costWon / sus[i]) : 0;
+    const cpaMan = (cpa / 10000).toFixed(1).replace(/\.0$/, '');
+    document.getElementById('kpi_cost_' + id).textContent = costs[i] + '만';
+    document.getElementById('kpi_cpa_' + id).textContent = cpaMan + '만';
+    adEff[i].cost = costWon;
+    adEff[i].cpa = cpa;
+  });
+
+  // CPA 차트 업데이트
+  adCpaChartRef.data.datasets[0].data = adEff.map(d => d.cpa);
+  adCpaChartRef.update();
+
+  // 버블 차트 업데이트
+  const maxC = Math.max(...adEff.map(d => d.cost));
+  adEffChartRef.data.datasets.forEach((ds, i) => {
+    ds.data[0].y = Math.round(adEff[i].cpa / 10000);
+    ds.data[0].r = Math.max(8, adEff[i].cost / maxC * 28);
+  });
+  adEffChartRef.update();
+}
+
+// ── localStorage 저장/복원
+const LS_KEY = 'charlla_dashboard_v1';
+
+function saveToLocal() {
+  try {
+    const payload = {
+      rawData: rawData,
+      adEff: adEff.map(d=>({name:d.name,v:d.v,su:d.su,cost:d.cost,color:d.color})),
+      charts: {
+        weekly:  window.weeklyAprilChartRef  ? window.weeklyAprilChartRef.data.datasets.map(d=>d.data)  : null,
+        monthly: window.monthlyTopChartRef   ? window.monthlyTopChartRef.data.datasets.map(d=>d.data)   : null,
+        cvrTrend:window.cvrTrendChartRef     ? window.cvrTrendChartRef.data.datasets.map(d=>d.data)     : null,
+        paidConv:window.paidConvChartRef     ? window.paidConvChartRef.data.datasets.map(d=>d.data)     : null,
+        chTrend: window.channelTrendChartRef ? window.channelTrendChartRef.data.datasets.map(d=>({data:d.data,su:d.su})) : null,
+        funnel:  window.funnelChartRef       ? window.funnelChartRef.data.datasets[0].data              : null,
+        chVisit: window.channelVisitChartRef ? window.channelVisitChartRef.data.datasets[0].data        : null,
+        cvr:     window.cvrChartRef          ? {labels:window.cvrChartRef.data.labels, data:window.cvrChartRef.data.datasets[0].data, bg:window.cvrChartRef.data.datasets[0].backgroundColor, bd:window.cvrChartRef.data.datasets[0].borderColor} : null,
+        cvrSortedData: JSON.parse(JSON.stringify(cvrSorted)),
+      },
+      kpi: ['kpiTotalV','kpiGA4Su','kpiGA4Cvr','kpiMBSu','kpiMBCvr',
+            'kpi_v_google','kpi_su_google','kpi_cvr_google','kpi_cpa_google',
+            'kpi_v_gdn','kpi_su_gdn','kpi_cvr_gdn','kpi_cpa_gdn',
+            'kpi_v_naver','kpi_su_naver','kpi_cvr_naver','kpi_cpa_naver',
+            'kpi_v_cafe24','kpi_su_cafe24','kpi_cvr_cafe24','kpi_cpa_cafe24',
+            'accTotalV','accTotalFt','accTotalAc','accTotalPo','accTotalSu','accTotalCvr',
+            'funnelDrop0','funnelDrop1','funnelDrop2','funnelDrop3'
+           ].reduce((acc,id)=>{const el=document.getElementById(id);if(el)acc[id]=el.textContent;return acc;},{}),
+      inputs: {
+        dateStart: document.getElementById('dateStart')?.value,
+        dateEnd:   document.getElementById('dateEnd')?.value,
+        wv1: document.getElementById('wv1')?.value,
+        wv2: document.getElementById('wv2')?.value,
+        wv3: document.getElementById('wv3')?.value,
+        wv4: document.getElementById('wv4')?.value,
+        cost_google: document.getElementById('cost_google')?.value,
+        cost_gdn:    document.getElementById('cost_gdn')?.value,
+        cost_naver:  document.getElementById('cost_naver')?.value,
+        cost_cafe24: document.getElementById('cost_cafe24')?.value,
+      }
+    };
+    localStorage.setItem(LS_KEY, JSON.stringify(payload));
+    return true;
+  } catch(e) { console.error('localStorage 저장 실패:', e); return false; }
+}
+
+function loadFromLocal() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return false;
+    const p = JSON.parse(raw);
+
+    // rawData 복원
+    if (p.rawData) {
+      rawData.length = 0;
+      p.rawData.forEach(d => rawData.push(d));
+      renderTable('rawTableBody', rawData, cvrColors);
+    }
+
+    // adEff 복원
+    if (p.adEff) {
+      p.adEff.forEach((d,i) => { if(adEff[i]) { adEff[i].v=d.v; adEff[i].su=d.su; adEff[i].cost=d.cost; adEff[i].cpa=d.su?Math.round(d.cost/d.su):0; adEff[i].cvr=d.v?+(d.su/d.v*100).toFixed(2):0; } });
+    }
+
+    // KPI 복원
+    if (p.kpi) Object.entries(p.kpi).forEach(([id,val])=>{ const el=document.getElementById(id); if(el) el.textContent=val; });
+
+    // input 복원
+    if (p.inputs) {
+      ['dateStart','dateEnd','wv1','wv2','wv3','wv4',
+       'cost_google','cost_gdn','cost_naver','cost_cafe24'].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el && p.inputs[id]!=null) el.value=p.inputs[id];
+      });
+      // 광고비 복원 후 차트 업데이트
+      if (p.inputs.cost_google!=null || p.inputs.cost_gdn!=null) updateAdEff();
+    }
+
+    // 차트 복원 - 차트 초기화 완료 후 실행
+    const ch = p.charts;
+    if (ch) {
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+          if(ch.weekly && window.weeklyAprilChartRef)  { ch.weekly.forEach(function(d,i){window.weeklyAprilChartRef.data.datasets[i].data=d;});  window.weeklyAprilChartRef.update(); }
+          if(ch.monthly && window.monthlyTopChartRef)  { ch.monthly.forEach(function(d,i){window.monthlyTopChartRef.data.datasets[i].data=d;});  window.monthlyTopChartRef.update(); }
+          if(ch.cvrTrend && window.cvrTrendChartRef)   { ch.cvrTrend.forEach(function(d,i){window.cvrTrendChartRef.data.datasets[i].data=d;});   window.cvrTrendChartRef.update(); }
+          if(ch.paidConv && window.paidConvChartRef)   { ch.paidConv.forEach(function(d,i){window.paidConvChartRef.data.datasets[i].data=d;});   window.paidConvChartRef.update(); }
+          if(ch.chTrend  && window.channelTrendChartRef) { ch.chTrend.forEach(function(d,i){ window.channelTrendChartRef.data.datasets[i].data=d.data; window.channelTrendChartRef.data.datasets[i].su=d.su; }); window.channelTrendChartRef.update(); }
+          if(ch.funnel   && window.funnelChartRef) {
+            ch.funnel.forEach(function(v,i){ funnelData[i]=v; });
+            window.funnelChartRef.data.datasets[0].data=ch.funnel;
+            window.funnelChartRef.update();
+          }
+          if(ch.chVisit  && window.channelVisitChartRef) { window.channelVisitChartRef.data.datasets[0].data=ch.chVisit; window.channelVisitChartRef.update(); }
+          if(ch.cvr      && window.cvrChartRef) {
+            window.cvrChartRef.data.labels=ch.cvr.labels;
+            window.cvrChartRef.data.datasets[0].data=ch.cvr.data;
+            window.cvrChartRef.data.datasets[0].backgroundColor=ch.cvr.bg;
+            window.cvrChartRef.data.datasets[0].borderColor=ch.cvr.bd;
+            if(ch.cvrSortedData) { cvrSorted.length=0; ch.cvrSortedData.forEach(function(d){cvrSorted.push(d);}); }
+            window.cvrChartRef.update();
+          }
+        });
+      });
+    }
+    return true;
+  } catch(e) { console.error('localStorage 복원 실패:', e); return false; }
+}
+
+// 파일 열릴 때 자동 복원
+window.addEventListener('load', function() {
+  loadFromLocal();
+});
+
+// ── 수동 저장 버튼
+function manualSave() {
+  const status = document.getElementById('uploadStatus');
+  status.textContent = '저장 중...';
+  status.className = 'text-xs text-gray-400';
+  try {
+    // 1. localStorage 저장 (본인용)
+    saveToLocal();
+
+    // 2. 현재 JS 변수 상태를 script 태그 앞에 주입해서 다운로드
+    // _ORIGINAL_HTML의 메인 <script> 태그 직전에 초기화 코드를 삽입
+    var initScript = '<script id="_dataInit">\n';
+    initScript += 'var _injectedRawData = ' + JSON.stringify(rawData) + ';\n';
+    initScript += 'var _injectedFunnelData = ' + JSON.stringify(funnelData) + ';\n';
+    initScript += 'var _injectedAdEff = ' + JSON.stringify(adEff.map(function(d){return {name:d.name,v:d.v,su:d.su,cost:d.cost,color:d.color};})) + ';\n';
+    initScript += 'var _injectedChannels = ' + JSON.stringify(channels) + ';\n';
+    initScript += 'var _injectedTotalSU = ' + totalSU + ';\n';
+
+    // 차트 데이터
+    var chartData = {};
+    if(window.weeklyAprilChartRef)  chartData.weekly  = window.weeklyAprilChartRef.data.datasets.map(function(d){return d.data;});
+    if(window.monthlyTopChartRef)   chartData.monthly = window.monthlyTopChartRef.data.datasets.map(function(d){return d.data;});
+    if(window.cvrTrendChartRef)     chartData.cvrTrend= window.cvrTrendChartRef.data.datasets.map(function(d){return d.data;});
+    if(window.paidConvChartRef)     chartData.paidConv= window.paidConvChartRef.data.datasets.map(function(d){return d.data;});
+    if(window.channelTrendChartRef) chartData.chTrend = window.channelTrendChartRef.data.datasets.map(function(d){return {data:d.data,su:d.su||null};});
+    if(window.funnelChartRef)       chartData.funnel  = window.funnelChartRef.data.datasets[0].data;
+    if(window.channelVisitChartRef) chartData.chVisit = window.channelVisitChartRef.data.datasets[0].data;
+    if(window.cvrChartRef)          chartData.cvr = {labels:window.cvrChartRef.data.labels,data:window.cvrChartRef.data.datasets[0].data,bg:window.cvrChartRef.data.datasets[0].backgroundColor,bd:window.cvrChartRef.data.datasets[0].borderColor,sorted:JSON.parse(JSON.stringify(cvrSorted))};
+    initScript += 'var _injectedChartData = ' + JSON.stringify(chartData) + ';\n';
+
+    // input 값
+    var inputs = {};
+    ['dateStart','dateEnd','wv1','wv2','wv3','wv4','cost_google','cost_gdn','cost_naver','cost_cafe24'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el) inputs[id] = el.value||'';
+    });
+    initScript += 'var _injectedInputs = ' + JSON.stringify(inputs) + ';\n';
+
+    // KPI 텍스트
+    var kpis = {};
+    ['kpiTotalV','kpiGA4Su','kpiGA4Cvr','kpiMBSu','kpiMBCvr',
+     'kpi_v_google','kpi_su_google','kpi_cvr_google','kpi_cpa_google','kpi_cost_google',
+     'kpi_v_gdn','kpi_su_gdn','kpi_cvr_gdn','kpi_cpa_gdn','kpi_cost_gdn',
+     'kpi_v_naver','kpi_su_naver','kpi_cvr_naver','kpi_cpa_naver','kpi_cost_naver',
+     'kpi_v_cafe24','kpi_su_cafe24','kpi_cvr_cafe24','kpi_cpa_cafe24','kpi_cost_cafe24',
+     'accTotalV','accTotalFt','accTotalAc','accTotalPo','accTotalSu','accTotalCvr',
+     'funnelDrop0','funnelDrop1','funnelDrop2','funnelDrop3'
+    ].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el) kpis[id] = el.textContent;
+    });
+    initScript += 'var _injectedKpis = ' + JSON.stringify(kpis) + ';\n';
+    initScript += '<\/script>\n';
+
+    // _ORIGINAL_HTML의 메인 script 태그 직전에 주입
+    var html = _ORIGINAL_HTML;
+    var mainScriptIdx = html.indexOf('<script>\nconst COLOR_GA');
+    if (mainScriptIdx === -1) mainScriptIdx = html.indexOf('<script>\n// RAW');
+    if (mainScriptIdx === -1) mainScriptIdx = html.lastIndexOf('<script>');
+    html = html.slice(0, mainScriptIdx) + initScript + html.slice(mainScriptIdx);
+
+    // 로드 시 주입 데이터 적용하는 코드도 삽입
+    var applyScript = '<script>\nwindow.addEventListener("load",function(){\n';
+    applyScript += 'if(typeof loadFromLocal==="function"&&loadFromLocal())return;\n';
+    applyScript += 'if(typeof _injectedRawData==="undefined")return;\n';
+    applyScript += 'rawData.length=0;_injectedRawData.forEach(function(d){rawData.push(d);});\n';
+    applyScript += '_injectedFunnelData.forEach(function(v,i){funnelData[i]=v;});\n';
+    applyScript += '_injectedAdEff.forEach(function(d,i){if(adEff[i]){adEff[i].v=d.v;adEff[i].su=d.su;adEff[i].cost=d.cost;adEff[i].cpa=d.su?Math.round(d.cost/d.su):0;adEff[i].cvr=d.v?+(d.su/d.v*100).toFixed(2):0;}});\n';
+    applyScript += 'channels.length=0;_injectedChannels.forEach(function(d){channels.push(d);});totalSU=_injectedTotalSU;\n'; // note: totalSU는 const라 별도 처리
+    applyScript += 'Object.keys(_injectedInputs).forEach(function(id){var el=document.getElementById(id);if(el)el.value=_injectedInputs[id];});\n';
+    applyScript += 'Object.keys(_injectedKpis).forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=_injectedKpis[id];});\n';
+    applyScript += 'if(typeof renderTable==="function")renderTable("rawTableBody",rawData,{high:"bg-emerald-100 text-emerald-700",mid:"bg-blue-100 text-blue-700",low:"bg-red-100 text-red-700",null:"bg-gray-100 text-gray-400"});\n';
+    applyScript += 'if(typeof updateAdEff==="function")updateAdEff();\n';
+    // 차트 복원
+    var cd = chartData;
+    if(cd.weekly)   applyScript += 'requestAnimationFrame(function(){requestAnimationFrame(function(){\n';
+    if(cd.weekly)   applyScript += 'if(window.weeklyAprilChartRef){'+JSON.stringify(cd.weekly)+'.forEach(function(d,i){window.weeklyAprilChartRef.data.datasets[i].data=d;});window.weeklyAprilChartRef.update();}\n';
+    if(cd.monthly)  applyScript += 'if(window.monthlyTopChartRef){'+JSON.stringify(cd.monthly)+'.forEach(function(d,i){window.monthlyTopChartRef.data.datasets[i].data=d;});window.monthlyTopChartRef.update();}\n';
+    if(cd.cvrTrend) applyScript += 'if(window.cvrTrendChartRef){'+JSON.stringify(cd.cvrTrend)+'.forEach(function(d,i){window.cvrTrendChartRef.data.datasets[i].data=d;});window.cvrTrendChartRef.update();}\n';
+    if(cd.paidConv) applyScript += 'if(window.paidConvChartRef){'+JSON.stringify(cd.paidConv)+'.forEach(function(d,i){window.paidConvChartRef.data.datasets[i].data=d;});window.paidConvChartRef.update();}\n';
+    if(cd.chTrend)  applyScript += 'if(window.channelTrendChartRef){'+JSON.stringify(cd.chTrend)+'.forEach(function(d,i){window.channelTrendChartRef.data.datasets[i].data=d.data;if(d.su)window.channelTrendChartRef.data.datasets[i].su=d.su;});window.channelTrendChartRef.update();}\n';
+    if(cd.funnel)   applyScript += 'if(window.funnelChartRef){var f='+JSON.stringify(cd.funnel)+';f.forEach(function(v,i){funnelData[i]=v;});window.funnelChartRef.data.datasets[0].data=f;window.funnelChartRef.update();}\n';
+    if(cd.chVisit)  applyScript += 'if(window.channelVisitChartRef){window.channelVisitChartRef.data.datasets[0].data='+JSON.stringify(cd.chVisit)+';window.channelVisitChartRef.update();}\n';
+    if(cd.cvr)      applyScript += 'if(window.cvrChartRef){window.cvrChartRef.data.labels='+JSON.stringify(cd.cvr.labels)+';window.cvrChartRef.data.datasets[0].data='+JSON.stringify(cd.cvr.data)+';window.cvrChartRef.data.datasets[0].backgroundColor='+JSON.stringify(cd.cvr.bg)+';window.cvrChartRef.data.datasets[0].borderColor='+JSON.stringify(cd.cvr.bd)+';cvrSorted.length=0;'+JSON.stringify(cd.cvr.sorted)+'.forEach(function(d){cvrSorted.push(d);});window.cvrChartRef.update();}\n';
+    if(cd.weekly)   applyScript += '});});\n';
+    applyScript += '});\n<\/script>\n';
+
+    html = html.replace('</html>', applyScript + '</html>');
+
+    // 다운로드
+    var now = new Date();
+    var ts = (now.getMonth()+1) + '' + String(now.getDate()).padStart(2,'0');
+    var blob = new Blob([html], {type:'text/html;charset=utf-8'});
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var a = document.createElement('a');
+      a.href = e.target.result;
+      a.download = '_찰나_마케팅_리포트_' + ts + '.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    };
+    reader.readAsDataURL(blob);
+
+    status.textContent = '✓ 저장 완료 · 파일 다운로드 중';
+    status.className = 'text-xs text-emerald-500 font-semibold';
+    setTimeout(function(){ status.textContent = ''; status.className = 'text-xs text-gray-400'; }, 3000);
+  } catch(e) {
+    console.error('저장 실패:', e);
+    status.textContent = '⚠ 저장 실패';
+    status.className = 'text-xs text-red-400 font-semibold';
+  }
+}
+
+// ── 업데이트 후 자동 저장
+
+// ── 날짜 선택기
+function updateDateLabel() {
+  const startEl = document.getElementById('dateStart');
+  const endEl   = document.getElementById('dateEnd');
+  if (!startEl || !endEl) return;
+
+  const s = new Date(startEl.value);
+  const e = new Date(endEl.value);
+  if (isNaN(s) || isNaN(e)) return;
+
+  const sm = s.getMonth()+1, sd = s.getDate();
+  const em = e.getMonth()+1, ed = e.getDate();
+
+  // 헤더 기준일 — 제거됨
+
+  // raw data 누적 표 기간
+  const accLabel = document.getElementById('accPeriodLabel');
+  if (accLabel) accLabel.textContent = `${sm}/${sd}~${em}/${ed} 누적`;
+
+  // 월별 차트 x축 마지막 레이블 (4월(~xx) 형식)
+  const monthLabel = `${em}월(~${ed})`;
+  const charts = [
+    window.monthlyTopChartRef,
+    window.cvrTrendChartRef,
+    window.paidConvChartRef,
+    window.channelTrendChartRef,
+  ];
+  charts.forEach(chart => {
+    if (!chart) return;
+    const labels = chart.data.labels;
+    if (labels && labels.length === 4) {
+      labels[3] = monthLabel;
+      chart.update();
+    }
+  });
+
+  // '당월 기준' 텍스트들도 업데이트
+  document.querySelectorAll('[data-period]').forEach(el => {
+    el.textContent = `${sm}/${sd} ~ ${em}/${ed} 기준`;
+  });
+}
+
+document.getElementById('dateStart').addEventListener('change', updateDateLabel);
+document.getElementById('dateEnd').addEventListener('change', updateDateLabel);
+
+// 초기 실행
+updateDateLabel();
+
+// ── 주차별 방문자수 수동 입력
+function updateWeeklyVisitors() {
+  if (!window.weeklyAprilChartRef) return;
+  const vDs = window.weeklyAprilChartRef.data.datasets.find(d => d.label === '방문자');
+  if (!vDs) return;
+  const ids = ['wv1','wv2','wv3','wv4'];
+  ids.forEach((id, i) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const val = el.value === '' ? null : parseInt(el.value) || 0;
+    vDs.data[i] = val;
+  });
+  window.weeklyAprilChartRef.update();
+}
+
+// ── 업로드 상태 관리
+const uploadState = { visitors: null, events: null };
+const status = document.getElementById('uploadStatus');
+
+// ── 매핑 규칙 (유입 트래픽)
+function mapVisitorRow(구분, 소스, 매체) {
+  const s = (소스 || '').trim().toLowerCase();
+  const m = (매체 || '').trim().toLowerCase();
+  const g = (구분 || '').trim().toLowerCase();
+
+  if (g === 'direct' || (s === '(direct)' && m === '(none)')) return { cat: 'direct', row: 'direct' };
+  // brand_Search: 소스가 bs(대소문자 무관)이거나 매체가 brand_search_pc/m
+  if (m === 'brand_search_pc' || m === 'brand_search_m' || s === 'bs') return { cat: 'paid search', row: 'brand_Search' };
+  if ((g === 'paid search' || g === 'paid video') && s === 'google' && m === 'cpc') return { cat: 'paid search', row: 'google' };
+  if ((g === 'paid search' || g === 'paid shopping') && s === 'naver') return { cat: 'paid search', row: 'naver' };
+  if (['ig','instagram','l.instagram.com'].includes(s)) return { cat: 'paid search', row: 'instagram' };
+  if (g === 'organic search' && s === 'google') return { cat: 'organic search', row: 'google' };
+  if (g === 'organic search' && (s.includes('naver') || s === 'm.naver.com' || s === 'm.search.naver.com')) return { cat: 'organic search', row: 'naver' };
+  if (g === 'organic search' && s === 'bing') return { cat: 'organic search', row: 'etc.(bing)' };
+  if (['inblog','blog','charlla_inblog','blog.naver.com','m.blog.naver.com','blog.catenoid.net'].includes(s)) return { cat: 'unassigned', row: 'blog' };
+  if (g === 'organic social') return { cat: 'unassigned', row: 'blog' };
+  if (s === 'iboss') return { cat: 'unassigned', row: 'iboss' };
+  // stibee: ebook, ebook2 모두 포함
+  if (s === 'stibee' || m === 'ebook' || m === 'ebook2') return { cat: 'unassigned', row: 'stibee' };
+  if (s === 'openads') return { cat: 'unassigned', row: 'openads' };
+  if (['catenoid.net','charlla.io'].includes(s)) return { cat: 'referral', row: 'catenoid.net / charlla.io' };
+  // chatgpt, gemini 등 AI — 매체 무관
+  if (s === 'chatgpt.com' || s === 'gemini.google.com' || (g === 'referral' && s === 'ai')) return { cat: 'referral', row: 'ai' };
+  if (g === 'referral' && (s.includes('cafe24') || s.includes('makeshop') || s.includes('sixshop'))) return { cat: 'referral', row: 'cafe24 (ad)' };
+  if (s === 'gdn' || (g === 'display' && s === 'google') || g === 'cross-network' || s === '(data not available)' || s === 'viimstudio') return { cat: 'display', row: 'GDN banner' };
+  // cafe24 floating_banner → CAFE24 banner
+  if (g === 'display' && (s.includes('cafe24') || m === 'banner' || m === 'floating_banner')) return { cat: 'display', row: 'CAFE24 banner' };
+  // unassigned인데 cafe24 floating_banner 소스인 경우도 처리
+  if (s.includes('cafe24') && m === 'floating_banner') return { cat: 'display', row: 'CAFE24 banner' };
+  if (g === 'display') return { cat: 'display', row: 'etc.(GFA, DMP..)' };
+  if (g === 'referral') return { cat: 'referral', row: 'etc.' };
+  if (g === 'unassigned') return { cat: 'unassigned', row: 'etc.' };
+  return null;
+}
+
+// ── 이벤트 전용 채널 매핑 (구분 컬럼 없이 소스/매체만으로)
+function mapEventRow(소스, 매체) {
+  const s = (소스 || '').trim().toLowerCase();
+  const m = (매체 || '').trim().toLowerCase();
+  if (s === '(direct)' || m === '(none)') return { cat: 'direct', row: 'direct' };
+  if (m === 'brand_search_pc' || m === 'brand_search_m') return { cat: 'paid search', row: 'brand_Search' };
+  if (s === 'google' && m === 'cpc') return { cat: 'paid search', row: 'google' };
+  if (s === 'naver' && m === 'cpc') return { cat: 'paid search', row: 'naver' };
+  if (['ig','instagram','l.instagram.com'].includes(s)) return { cat: 'paid search', row: 'instagram' };
+  if (s === 'google' && m === 'organic') return { cat: 'organic search', row: 'google' };
+  if ((s.includes('naver') || s === 'm.search.naver.com') && m === 'referral') return { cat: 'organic search', row: 'naver' };
+  if (s.includes('naver') && m === 'organic') return { cat: 'organic search', row: 'naver' };
+  if (s === 'bing' && m === 'organic') return { cat: 'organic search', row: 'etc.(bing)' };
+  if (['blog.naver.com','m.blog.naver.com','inblog'].includes(s)) return { cat: 'unassigned', row: 'blog' };
+  if (s === 'gdn' || s === 'viimstudio') return { cat: 'display', row: 'GDN banner' };
+  if (s === '(data not available)') return { cat: 'display', row: 'GDN banner' };
+  if (s.includes('cafe24') && (m === 'referral' || m === 'banner' || m === 'floating_banner')) return { cat: 'referral', row: 'cafe24 (ad)' };
+  if (s === 'chatgpt.com' || s === 'gemini.google.com') return { cat: 'referral', row: 'ai' };
+  if (s === 'accounts.google.com' && m === 'referral') return { cat: 'direct', row: 'direct' };
+  if (s === 'mail.google.com' && m === 'referral') return { cat: 'direct', row: 'direct' };
+  if (m === 'referral') return { cat: 'referral', row: 'etc.' };
+  if (m === 'ebook') return { cat: 'unassigned', row: 'stibee' };
+  return null;
+}
+const freetrialEvents = new Set([
+  'ga4-btn-home-freetrial','ga4-btn-gnb-freetrial','ga4-btn-basic-free','ga4_btn_basic_free',
+  'ga4-btn-home-footer-freetrial','ga4-btn-lite-free','ga4-btn-multiplayer-free',
+  'ga4-btn-playersetting-footer-free','ga4-btn-playersetting-free',
+  'ga4-btn-playlist-footer-free','ga4-btn-playlist-free','ga4-btn-playlist-free1',
+  'ga4-btn-playlist-free2','ga4-btn-standard-free','ga4-btn-statistic-free',
+  'ga4-btn-statistic-footer-free'
+]);
+const accountEvents = new Set(['sign_up_create_account','sign-up-create-account-social']);
+const policyEvents  = new Set(['ga4-btn-policy-next','ga4-btn-policy-social-next']);
+const signupEvents  = new Set(['sign_up']);
+const ignoreEvents  = new Set(['ga4-btn-shopinfo-next','start_sign_up']);
+
+function getEventStage(ev) {
+  if (ignoreEvents.has(ev)) return null;
+  if (freetrialEvents.has(ev)) return 'ft';
+  if (accountEvents.has(ev))   return 'ac';
+  if (policyEvents.has(ev))    return 'po';
+  if (signupEvents.has(ev))    return 'su';
+  return null;
+}
+
+// ── CSV 파싱 (EUC-KR 대응)
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  const headers = lines[0].split(',').map(h => h.trim());
+  return lines.slice(1).map(line => {
+    const vals = line.split(',').map(v => v.trim());
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = vals[i] || '');
+    return obj;
+  });
+}
+
+// ── 표 렌더링
+function renderTable(tbodyId, data, cvrColors) {
+  const tbody = document.getElementById(tbodyId);
+  tbody.innerHTML = '';
+  data.forEach(({ cat, rows }) => {
+    tbody.innerHTML += `<tr class="bg-gray-50 border-t border-gray-100"><td colspan="7" class="py-2 pr-4 text-xs font-bold text-gray-400 uppercase tracking-widest pl-4">${cat}</td></tr>`;
+    rows.forEach(r => {
+      const z = v => v === 0 ? `<span class="text-gray-300">${v}</span>` : v.toLocaleString();
+      const cvr = r.v > 0 ? (r.su / r.v * 100).toFixed(1) + '%' : '-';
+      const cvrType = r.v > 0 ? (r.su/r.v > 0.07 ? 'high' : r.su/r.v > 0.02 ? 'mid' : r.su/r.v > 0 ? 'low' : 'null') : 'null';
+      tbody.innerHTML += `<tr class="border-t border-gray-50 hover:bg-gray-50 transition-colors">
+        <td class="py-2.5 pr-4 text-gray-700 pl-8">${r.name}</td>
+        <td class="py-2.5 px-3 text-right text-gray-600 tabular-nums">${z(r.v)}</td>
+        <td class="py-2.5 px-3 text-right text-gray-600 tabular-nums">${z(r.ft)}</td>
+        <td class="py-2.5 px-3 text-right text-gray-600 tabular-nums">${z(r.ac)}</td>
+        <td class="py-2.5 px-3 text-right text-gray-600 tabular-nums">${z(r.po)}</td>
+        <td class="py-2.5 px-3 text-right text-gray-600 tabular-nums">${z(r.su)}</td>
+        <td class="py-2.5 pl-3 text-right"><span class="text-xs font-semibold px-2 py-0.5 rounded-full ${cvrColors[cvrType]}">${cvr}</span></td>
+      </tr>`;
+    });
+  });
+}
+
+// ── Raw Data 변경 시 대시보드 전체 갱신
+function updateDashboard() {
+  const allRows = rawData.flatMap(d => d.rows);
+  const totalV  = allRows.reduce((s,r) => s + r.v,  0);
+  const totalFt = allRows.reduce((s,r) => s + r.ft, 0);
+  const totalAc = allRows.reduce((s,r) => s + r.ac, 0);
+  const totalPo = allRows.reduce((s,r) => s + r.po, 0);
+  const totalSu = allRows.reduce((s,r) => s + r.su, 0);
+
+  // ── 주차별 차트 — 입력 필드 값 반영 + 3주차 자동계산
+  if (window.weeklyAprilChartRef) {
+    const vDs   = window.weeklyAprilChartRef.data.datasets.find(d => d.label === '방문자');
+    const ga4Ds = window.weeklyAprilChartRef.data.datasets.find(d => d.label === 'GA4 가입');
+    if (vDs) {
+      const w1 = parseInt(document.getElementById('wv1')?.value) || vDs.data[0] || 1710;
+      const w2 = parseInt(document.getElementById('wv2')?.value) || vDs.data[1] || 1532;
+      const w3el = document.getElementById('wv3');
+      const w3 = w3el && w3el.value !== '' ? parseInt(w3el.value) : Math.max(0, totalV - w1 - w2);
+      vDs.data[0] = w1; vDs.data[1] = w2; vDs.data[2] = w3; vDs.data[3] = null;
+      // 입력 필드도 동기화
+      if (document.getElementById('wv1')) document.getElementById('wv1').value = w1;
+      if (document.getElementById('wv2')) document.getElementById('wv2').value = w2;
+      if (document.getElementById('wv3')) document.getElementById('wv3').value = w3;
+    }
+    if (ga4Ds) {
+      ga4Ds.data[2] = Math.max(0, totalSu - (ga4Ds.data[0]||61) - (ga4Ds.data[1]||49));
+      ga4Ds.data[3] = null;
+    }
+    window.weeklyAprilChartRef.update();
+  }
+
+  // ── KPI 카드
+  const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  setEl('kpiTotalV', totalV.toLocaleString() + '명');
+  setEl('kpiGA4Su',  totalSu.toLocaleString() + '명');
+  const ga4Cvr = totalV > 0 ? (totalSu/totalV*100).toFixed(2) + '%' : '-';
+  setEl('kpiGA4Cvr', ga4Cvr);
+  // accTotal 합계행
+  setEl('accTotalV',  totalV.toLocaleString());
+  setEl('accTotalFt', totalFt.toLocaleString());
+  setEl('accTotalAc', totalAc.toLocaleString());
+  setEl('accTotalPo', totalPo.toLocaleString());
+  setEl('accTotalSu', totalSu.toLocaleString());
+  setEl('accTotalCvr', totalV > 0 ? (totalSu/totalV*100).toFixed(1)+'%' : '-');
+
+  // ── 전환 퍼널 차트
+  if (window.funnelChartRef) {
+    funnelData[0] = totalV; funnelData[1] = totalFt;
+    funnelData[2] = totalAc; funnelData[3] = totalPo; funnelData[4] = totalSu;
+    window.funnelChartRef.data.datasets[0].data = [...funnelData];
+    window.funnelChartRef.update();
+  }
+
+  // ── 퍼널 하단 이탈률 박스
+  const funnelSteps = [
+    { id:'funnelDrop0', from: totalV,  to: totalFt },
+    { id:'funnelDrop1', from: totalFt, to: totalAc },
+    { id:'funnelDrop2', from: totalAc, to: totalPo },
+    { id:'funnelDrop3', from: totalPo, to: totalSu },
+  ];
+  funnelSteps.forEach(({ id, from, to }) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = from > 0 ? ((from - to) / from * 100).toFixed(1) + '%' : '0%';
+  });
+
+  // ── 월별 유입+가입 추이 — GA4 4월만 업데이트
+  if (window.monthlyTopChartRef) {
+    const ga4Ds = window.monthlyTopChartRef.data.datasets.find(d => d.label === 'GA4 가입');
+    const vDs   = window.monthlyTopChartRef.data.datasets.find(d => d.label === '방문자');
+    if (ga4Ds) ga4Ds.data[3] = totalSu;
+    if (vDs)   vDs.data[3]   = totalV;
+    window.monthlyTopChartRef.update();
+  }
+
+  // ── 월별 회원가입율 추이 — GA4 4월만
+  if (window.cvrTrendChartRef) {
+    const ga4Ds = window.cvrTrendChartRef.data.datasets.find(d => d.label === 'GA4 가입율');
+    if (ga4Ds) ga4Ds.data[3] = totalV > 0 ? +(totalSu/totalV*100).toFixed(2) : 0;
+    window.cvrTrendChartRef.update();
+  }
+
+  // ── 채널별 회원가입 비중 도넛 (su 기준)
+  if (window.channelVisitChartRef) {
+    const allR = rawData.flatMap(d => d.rows.map(r => ({...r, cat: d.cat})));
+    const suByName = [
+      allR.filter(r => r.cat==='paid search' || r.name==='GDN banner').reduce((s,r)=>s+r.su,0),
+      allR.filter(r => r.cat==='direct').reduce((s,r)=>s+r.su,0),
+      allR.filter(r => r.name==='cafe24 (ad)' || r.name==='CAFE24 banner').reduce((s,r)=>s+r.su,0),
+      allR.filter(r => r.cat==='organic search' || r.name==='blog' || r.name==='ai').reduce((s,r)=>s+r.su,0),
+      allR.filter(r => (r.cat==='unassigned'||r.cat==='SNS') || (r.cat==='referral' && r.name!=='cafe24 (ad)') || (r.cat==='display' && r.name!=='GDN banner')).reduce((s,r)=>s+r.su,0),
+    ];
+    window.channelVisitChartRef.data.datasets[0].data = suByName;
+    window.channelVisitChartRef.update();
+  }
+
+  // ── 채널별 회원가입 전환율
+  if (window.cvrChartRef) {
+    const allR2 = rawData.flatMap(d => d.rows.map(r => ({...r, cat: d.cat})));
+    const chanDefs = [
+      { name:'검색/배너광고', color:'#3b82f6', fn: r => r.cat==='paid search' || r.name==='GDN banner' },
+      { name:'직접 유입',     color:'#10b981', fn: r => r.cat==='direct' },
+      { name:'카페24',        color:'#f59e0b', fn: r => r.name==='cafe24 (ad)' || r.name==='CAFE24 banner' },
+      { name:'자연유입',      color:'#06b6d4', fn: r => r.cat==='organic search' || r.name==='blog' || r.name==='ai' },
+      { name:'기타',          color:'#cbd5e1', fn: r => (r.cat==='unassigned'||r.cat==='SNS') || (r.cat==='referral' && r.name!=='cafe24 (ad)') || (r.cat==='display' && r.name!=='GDN banner') },
+    ];
+    const newCvrSorted = chanDefs.map(def => {
+      const rows = allR2.filter(def.fn);
+      const v  = rows.reduce((s,r)=>s+r.v,  0);
+      const su = rows.reduce((s,r)=>s+r.su, 0);
+      return { name:def.name, v, su, cvr: v>0 ? +(su/v*100).toFixed(1) : 0, color:def.color };
+    }).sort((a,b) => b.cvr - a.cvr);
+    // cvrSorted 전역 업데이트 (플러그인 콜백용)
+    cvrSorted.length = 0;
+    newCvrSorted.forEach(d => cvrSorted.push(d));
+    window.cvrChartRef.data.labels = newCvrSorted.map(c=>c.name);
+    window.cvrChartRef.data.datasets[0].data = newCvrSorted.map(c=>c.cvr);
+    window.cvrChartRef.data.datasets[0].backgroundColor = newCvrSorted.map(c=>c.color+'bb');
+    window.cvrChartRef.data.datasets[0].borderColor = newCvrSorted.map(c=>c.color);
+    window.cvrChartRef.update();
+  }
+
+  // ── 채널별 비중 추이 — 4월만
+  if (window.channelTrendChartRef) {
+    const allR3 = rawData.flatMap(d => d.rows.map(r => ({...r, cat: d.cat})));
+    const chanDefs3 = [
+      { label:'검색/배너광고', fn: r => r.cat==='paid search' || r.name==='GDN banner' },
+      { label:'직접 유입',     fn: r => r.cat==='direct' },
+      { label:'카페24',        fn: r => r.name==='cafe24 (ad)' || r.name==='CAFE24 banner' },
+      { label:'자연유입',      fn: r => r.cat==='organic search' || r.name==='blog' || r.name==='ai' },
+      { label:'기타',          fn: r => (r.cat==='unassigned'||r.cat==='SNS') || (r.cat==='referral' && r.name!=='cafe24 (ad)') || (r.cat==='display' && r.name!=='GDN banner') },
+    ];
+    chanDefs3.forEach(def => {
+      const su  = allR3.filter(def.fn).reduce((s,r)=>s+r.su, 0);
+      const pct = totalSu > 0 ? +(su/totalSu*100).toFixed(1) : 0;
+      const ds  = window.channelTrendChartRef.data.datasets.find(d => d.label === def.label);
+      if (ds) {
+        ds.data[3] = pct;
+        if (ds.su) ds.su[3] = su;  // 절대값도 갱신
+      }
+    });
+    window.channelTrendChartRef.update();
+  }
+
+  // ── 유료 광고 매체별 효율 — raw data 기준으로 v/su 업데이트
+  const adRawDefs = [
+    { key:'google', rows:['google'],        cat:'paid search' },  // paid search > google (cpc)만
+    { key:'gdn',    rows:['GDN banner'],    cat:'display' },      // GDN만
+    { key:'naver',  rows:['naver','brand_Search'], cat:'paid search' },  // naver + brand_Search
+    { key:'cafe24', rows:['cafe24 (ad)','CAFE24 banner'], cat:null }, // 카페24
+  ];
+  adRawDefs.forEach((def, i) => {
+    const r = def.cat
+      ? rawData.filter(d=>d.cat===def.cat).flatMap(d=>d.rows).filter(row=>def.rows.includes(row.name))
+      : rawData.flatMap(d=>d.rows).filter(row=>def.rows.includes(row.name));
+    const newV  = r.reduce((s,row)=>s+row.v,  0);
+    const newSu = r.reduce((s,row)=>s+row.su, 0);
+    if (!adEff[i]) return;
+    adEff[i].v   = newV;
+    adEff[i].su  = newSu;
+    adEff[i].cpa = newSu > 0 ? Math.round(adEff[i].cost / newSu) : 0;
+    adEff[i].cvr = newV  > 0 ? +(newSu/newV*100).toFixed(2) : 0;
+    // 카드 업데이트
+    const cpaMan = adEff[i].cpa >= 10000
+      ? (adEff[i].cpa/10000).toFixed(1).replace(/\.0$/,'')+'만'
+      : adEff[i].cpa+'원';
+    setEl('kpi_v_'+def.key,   newV.toLocaleString());
+    setEl('kpi_su_'+def.key,  newSu.toLocaleString());
+    setEl('kpi_cvr_'+def.key, adEff[i].cvr.toFixed(2)+'%');
+    setEl('kpi_cpa_'+def.key, cpaMan);
+  });
+  // CPA 차트
+  if (window.adCpaChartRef) {
+    adCpaChartRef.data.datasets[0].data = adEff.map(d=>d.cpa);
+    adCpaChartRef.update();
+  }
+  // 버블 차트
+  if (window.adEffChartRef) {
+    const maxC = Math.max(...adEff.map(d=>d.cost));
+    adEffChartRef.data.datasets.forEach((ds, i) => {
+      if (!adEff[i]) return;
+      ds.data[0].x = adEff[i].cvr;
+      ds.data[0].y = Math.round(adEff[i].cpa/10000);
+      ds.data[0].r = Math.max(8, adEff[i].cost/maxC*28);
+    });
+    adEffChartRef.update();
+  }
+}
+
+// ── rawData 구조를 key맵으로 변환
+function buildKeyMap(rawData) {
+  const map = {};
+  rawData.forEach(({ cat, rows }) => {
+    rows.forEach(r => { map[cat + '|' + r.name] = r; });
+  });
+  return map;
+}
+
+// ── 두 파일 모두 올라오면 처리
+function processUploads() {
+  if (!uploadState.visitors && !uploadState.events) return;
+
+  const status = document.getElementById('uploadStatus');
+  const cvrColors = { high:'bg-emerald-100 text-emerald-700', mid:'bg-blue-100 text-blue-700', low:'bg-red-100 text-red-700', null:'bg-gray-100 text-gray-400' };
+
+  // 어떤 파일이 올라왔는지 미리 기록
+  const hasVisitors = !!uploadState.visitors;
+  const hasEvents   = !!uploadState.events;
+
+  const structure = [
+    { cat:'direct',         rows:['direct'] },
+    { cat:'unassigned',     rows:['blog','outstanding','qletter','iboss','openads','stibee','etc.'] },
+    { cat:'paid search',    rows:['brand_Search','google','naver','instagram'] },
+    { cat:'organic search', rows:['google','naver','etc.(bing)'] },
+    { cat:'referral',       rows:['catenoid.net / charlla.io','cafe24 (ad)','makeshop','ai','etc.'] },
+    { cat:'display',        rows:['GDN banner','CAFE24 banner','IBOSS banner','Outstanding banner','etc.(GFA, DMP..)'] },
+    { cat:'SNS',            rows:['facebook / linkedin'] },
+  ];
+
+  const weekMap = {};
+  structure.forEach(({ cat, rows }) => {
+    rows.forEach(name => { weekMap[cat+'|'+name] = { name, v:0, ft:0, ac:0, po:0, su:0 }; });
+  });
+
+  const unknownSources = [];
+
+  // 유입 파싱
+  if (hasVisitors) {
+    uploadState.visitors.forEach(row => {
+      const 구분 = (row['구분'] || '').trim();
+      const 소스 = (row['소스'] || '').trim();
+      const 매체 = (row['매체'] || '').trim();
+      const 사용자 = parseInt(row['사용자수'] || row['사용자'] || '0') || 0;
+      const mapped = mapVisitorRow(구분, 소스, 매체);
+      if (!mapped) { unknownSources.push({ 구분, 소스, 매체, 사용자 }); return; }
+      const key = mapped.cat + '|' + mapped.row;
+      if (weekMap[key] !== undefined) weekMap[key].v += 사용자;
+    });
+  }
+
+  // 이벤트 파싱
+  if (hasEvents) {
+    uploadState.events.forEach(row => {
+      const ev = (row['이벤트'] || row['이벤트 이름'] || row['Event name'] || row['Event'] || '').trim();
+      const 소스 = (row['소스'] || '').trim();
+      const 매체 = (row['매체'] || '').trim();
+      const 사용자 = parseInt(row['사용자수'] || row['사용자'] || '0') || 0;
+      const stage = getEventStage(ev);
+      if (!stage) return;
+      const mapped = mapEventRow(소스, 매체);
+      if (!mapped) return;
+      const key = mapped.cat + '|' + mapped.row;
+      if (weekMap[key] !== undefined) weekMap[key][stage] += 사용자;
+    });
+  }
+
+  if (unknownSources.length > 0) {
+    const msg = unknownSources.slice(0,10).map(u => `${u.구분} / ${u.소스} / ${u.매체} (${u.사용자}명)`).join('\n');
+    alert(`⚠ 미분류 소스:\n\n${msg}`);
+  }
+
+  // rawData 덮어쓰기
+  const accKeyMap = buildKeyMap(rawData);
+  structure.forEach(({ cat, rows }) => {
+    rows.forEach(name => {
+      const key = cat + '|' + name;
+      const wk = weekMap[key];
+      const acc = accKeyMap[key];
+      if (!acc || !wk) return;
+      if (hasVisitors) acc.v = wk.v;
+      if (hasEvents) { acc.ft = wk.ft; acc.ac = wk.ac; acc.po = wk.po; acc.su = wk.su; }
+      acc.cvr = acc.v > 0 ? (acc.su/acc.v*100).toFixed(1)+'%' : '-';
+      acc.cvrType = acc.v > 0
+        ? (acc.su/acc.v > 0.08 ? 'high' : acc.su/acc.v > 0.03 ? 'mid' : acc.su/acc.v > 0 ? 'low' : 'null')
+        : 'null';
+    });
+  });
+
+  // 표 + 합계 갱신
+  renderTable('rawTableBody', rawData, cvrColors);
+  const sumFields = ['v','ft','ac','po','su'];
+  const accTotals = sumFields.map(f => rawData.flatMap(d => d.rows).reduce((s,r) => s + (r[f]||0), 0));
+  ['accTotalV','accTotalFt','accTotalAc','accTotalPo','accTotalSu'].forEach((id,i) => {
+    document.getElementById(id).textContent = accTotals[i].toLocaleString();
+  });
+  document.getElementById('accTotalCvr').textContent = accTotals[0] > 0 ? (accTotals[4]/accTotals[0]*100).toFixed(1)+'%' : '-';
+
+  uploadState.visitors = null;
+  uploadState.events = null;
+
+  updateDashboard();
+  saveToLocal();
+  status.textContent = '✓ 업데이트 완료 · 저장됨';
+  status.className = 'text-xs text-emerald-500 font-semibold';
+  setTimeout(() => { status.textContent = ''; status.className = 'text-xs text-gray-400'; }, 3000);
+}
+
+// ── Metabase 업로드 처리
+function processMetabase(wb) {
+  const status = document.getElementById('uploadStatus');
+  try {
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+    // 월별 가입수, 유료전환수 집계
+    const monthSu   = {1:0,2:0,3:0,4:0};
+    const monthPaid = {1:0,2:0,3:0,4:0};
+    // 주차별 집계 (4월만)
+    const weekSu = {1:0, 2:0, 3:0}; // 1주(4/1~8), 2주(4/9~15), 3주(4/16~21)
+
+    rows.forEach(r => {
+      const raw = r['가입일'] || r['가입일시'] || '';
+      let d = null;
+      if (raw instanceof Date) d = raw;
+      else if (raw) {
+        d = new Date(raw);
+        if (isNaN(d)) {
+          const n = parseFloat(raw);
+          if (!isNaN(n)) d = new Date(Math.round((n - 25569) * 86400 * 1000));
+        }
+      }
+      if (!d || isNaN(d)) return;
+      const month = d.getMonth() + 1;
+      if (month < 1 || month > 4) return;
+
+      monthSu[month]++;
+      if ((r['유료전환 여부'] || '').toString().trim().toUpperCase() === 'Y') {
+        monthPaid[month]++;
+      }
+
+      // 4월 주차 분류
+      if (month === 4) {
+        const day = d.getDate();
+        if (day <= 8)       weekSu[1]++;
+        else if (day <= 15) weekSu[2]++;
+        else                weekSu[3]++; // 4/16~21
+      }
+    });
+
+    // ── KPI 카드 (4월 기준)
+    const mbSu4 = monthSu[4];
+    const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    setEl('kpiMBSu', mbSu4.toLocaleString() + '명');
+    const totalV = parseInt((document.getElementById('kpiTotalV')||{textContent:'3817'}).textContent.replace(/[^0-9]/g,'')) || 3817;
+    setEl('kpiMBCvr', totalV > 0 ? (mbSu4/totalV*100).toFixed(2)+'%' : '-');
+
+    // ── 주차별 차트 — MB 3주차까지 업데이트
+    if (window.weeklyAprilChartRef) {
+      const mbDs = window.weeklyAprilChartRef.data.datasets.find(d => d.label === 'Metabase 가입');
+      if (mbDs) {
+        mbDs.data = [weekSu[1], weekSu[2], weekSu[3]];
+        window.weeklyAprilChartRef.update();
+      }
+    }
+
+    // ── 월별 유입+가입 차트 — 4월 MB만 업데이트
+    if (window.monthlyTopChartRef) {
+      const mbDs = window.monthlyTopChartRef.data.datasets.find(d => d.label === 'Metabase 가입');
+      if (mbDs) {
+        mbDs.data[3] = monthSu[4]; // 4월만
+        window.monthlyTopChartRef.update();
+      }
+    }
+
+    // ── 월별 전환율 추이 — 4월 MB만 업데이트
+    if (window.cvrTrendChartRef) {
+      const mbDs = window.cvrTrendChartRef.data.datasets.find(d => d.label === 'Metabase 가입율');
+      if (mbDs) {
+        mbDs.data[3] = totalV > 0 ? +((monthSu[4]/totalV)*100).toFixed(2) : 0;
+        window.cvrTrendChartRef.update();
+      }
+    }
+
+    // ── 유료전환 차트 — 4월만 업데이트
+    if (window.paidConvChartRef) {
+      const mbDs   = window.paidConvChartRef.data.datasets.find(d => d.label === 'Metabase 가입');
+      const paidDs = window.paidConvChartRef.data.datasets.find(d => d.label === '유료 전환');
+      const rateDs = window.paidConvChartRef.data.datasets.find(d => d.label === '유료전환율');
+      if (mbDs)   mbDs.data[3]   = monthSu[4];
+      if (paidDs) paidDs.data[3] = monthPaid[4];
+      if (rateDs) rateDs.data[3] = monthSu[4] > 0 ? +((monthPaid[4]/monthSu[4])*100).toFixed(1) : 0;
+      window.paidConvChartRef.update();
+    }
+
+    const total  = Object.values(monthSu).reduce((a,b)=>a+b,0);
+    const totalP = Object.values(monthPaid).reduce((a,b)=>a+b,0);
+    status.textContent = `✓ Metabase 업데이트 완료 · 저장됨 (총 가입 ${total.toLocaleString()}명, 유료전환 ${totalP}명)`;
+    status.className = 'text-xs text-emerald-500 font-semibold';
+    saveToLocal();
+    setTimeout(() => { status.textContent = ''; status.className = 'text-xs text-gray-400'; }, 4000);
+  } catch(err) {
+    status.textContent = '⚠ Metabase 파일 오류';
+    console.error(err);
+  }
+}
+
+document.getElementById('uploadMetabase').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const status = document.getElementById('uploadStatus');
+  status.textContent = 'Metabase 파일 읽는 중...';
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const wb = XLSX.read(ev.target.result, { type: 'array', cellDates: true });
+      processMetabase(wb);
+    } catch(err) { status.textContent = '⚠ Metabase 파일 오류'; console.error(err); }
+  };
+  reader.readAsArrayBuffer(file);
+  e.target.value = '';
+});
+
+// ── 유입 트래픽 업로드
+document.getElementById('uploadVisitors').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  status.textContent = '유입 파일 읽는 중...';
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      uploadState.visitors = parseCSV(ev.target.result);
+      uploadState.events = null;
+      status.textContent = '처리 중...';
+      status.className = 'text-xs text-blue-500 font-semibold';
+      processUploads();
+    } catch(err) { status.textContent = '⚠ 유입 파일 오류'; console.error(err); }
+  };
+  reader.readAsText(file, 'euc-kr');
+  e.target.value = '';
+});
+
+// ── 이벤트 트래픽 업로드
+document.getElementById('uploadEvents').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  status.textContent = '이벤트 파일 읽는 중...';
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      uploadState.visitors = null;
+      uploadState.events = parseCSV(ev.target.result);
+      status.textContent = '처리 중...';
+      status.className = 'text-xs text-violet-500 font-semibold';
+      processUploads();
+    } catch(err) { status.textContent = '⚠ 이벤트 파일 오류'; console.error(err); }
+  };
+  reader.readAsText(file, 'euc-kr');
+  e.target.value = '';
+});
+
+
+</script>
+
+
+<script>
+window.addEventListener("load",function(){
+if(window.weeklyAprilChartRef){var w=window.weeklyAprilChartRef;w.data.datasets[0].data=[1710, 1532, 575, null];w.data.datasets[1].data=[79, 75, 52, null];w.data.datasets[2].data=[61, 49, 19, null];w.update();}
+if(window.monthlyTopChartRef){var mt=window.monthlyTopChartRef;mt.data.datasets[0].data=[5046, 4687, 4532, 3817];mt.data.datasets[1].data=[0, 0, 0, 206];mt.data.datasets[2].data=[317, 222, 153, 129];mt.update();}
+if(window.cvrTrendChartRef){var ct=window.cvrTrendChartRef;ct.data.datasets[0].data=[6.46, 5.23, 4.37, 5.4];ct.data.datasets[1].data=[6.28, 4.74, 3.38, 3.38];ct.update();}
+if(window.paidConvChartRef){var pc=window.paidConvChartRef;pc.data.datasets[0].data=[0, 0, 0, 206];pc.data.datasets[1].data=[0, 0, 0, 4];pc.data.datasets[2].data=[0, 0, 0, 1.9];pc.update();}
+if(window.funnelChartRef){var f=[3817, 1142, 602, 494, 129];f.forEach(function(v,i){funnelData[i]=v;});window.funnelChartRef.data.datasets[0].data=f;window.funnelChartRef.update();}
+if(window.channelVisitChartRef){window.channelVisitChartRef.data.datasets[0].data=[66, 32, 17, 13, 3];window.channelVisitChartRef.update();}
+if(window.cvrChartRef){var cv=window.cvrChartRef;cv.data.labels=["\uce74\ud39824", "\uc790\uc5f0\uc720\uc785", "\uc9c1\uc811 \uc720\uc785", "\uac80\uc0c9/\ubc30\ub108\uad11\uace0", "\uae30\ud0c0"];cv.data.datasets[0].data=[6.0, 5.4, 4.2, 2.7, 2.5];cv.data.datasets[0].backgroundColor=["#f59e0bbb", "#06b6d4bb", "#10b981bb", "#3b82f6bb", "#cbd5e1bb"];cv.data.datasets[0].borderColor=["#f59e0b", "#06b6d4", "#10b981", "#3b82f6", "#cbd5e1"];cvrSorted.length=0;[{"name": "\uce74\ud39824", "v": 282, "su": 17, "color": "#f59e0b"}, {"name": "\uc790\uc5f0\uc720\uc785", "v": 242, "su": 13, "color": "#06b6d4"}, {"name": "\uc9c1\uc811 \uc720\uc785", "v": 770, "su": 32, "color": "#10b981"}, {"name": "\uac80\uc0c9/\ubc30\ub108\uad11\uace0", "v": 2457, "su": 66, "color": "#3b82f6"}, {"name": "\uae30\ud0c0", "v": 118, "su": 3, "color": "#cbd5e1"}].forEach(function(d){cvrSorted.push(d);});cv.update();}
+if(window.channelTrendChartRef){window.channelTrendChartRef.data.datasets[0].data=[47, 43, 44, 51.2];window.channelTrendChartRef.data.datasets[0].su=[149, 96, 87, 66];}
+if(window.channelTrendChartRef){window.channelTrendChartRef.data.datasets[1].data=[22, 25, 29, 24.8];window.channelTrendChartRef.data.datasets[1].su=[70, 56, 57, 32];}
+if(window.channelTrendChartRef){window.channelTrendChartRef.data.datasets[2].data=[19, 18, 17, 13.2];window.channelTrendChartRef.data.datasets[2].su=[60, 40, 34, 17];}
+if(window.channelTrendChartRef){window.channelTrendChartRef.data.datasets[3].data=[9, 12, 7, 10.1];window.channelTrendChartRef.data.datasets[3].su=[29, 27, 14, 13];}
+if(window.channelTrendChartRef){window.channelTrendChartRef.data.datasets[4].data=[3, 2, 3, 2.3];window.channelTrendChartRef.data.datasets[4].su=[9, 4, 6, 3];}
+if(window.channelTrendChartRef){window.channelTrendChartRef.update();}
+});
+</script>
+</body></html>
