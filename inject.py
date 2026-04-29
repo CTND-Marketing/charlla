@@ -319,12 +319,17 @@ for k in prev_keys:
     sv = saved.get('totalV', 0)
     monthly_v_list.append(sv)
     monthly_ga4_list.append(saved.get('totalSu', 0))
-    monthly_mb_list.append(saved.get('mbSu', 0))
+    monthly_mb_list.append(all_month_su.get(k, saved.get('mbSu', 0)))
+    mb_su_k2 = all_month_su.get(k, saved.get('mbSu', 0))
+    mb_cvr_k = round(saved.get('totalSu', 0)/sv*100, 2) if sv else 0
     monthly_ga4_cvr_list.append(saved.get('ga4Cvr', 0))
-    monthly_mb_cvr_list.append(saved.get('mbCvr', 0))
-    monthly_paid_list.append(saved.get('paidSu', 0))
-    monthly_paid_mb_list.append(saved.get('mbSu', 0))
-    monthly_paid_r_list.append(saved.get('paidRate', 0))
+    monthly_mb_cvr_list.append(round(mb_su_k2/sv*100, 2) if sv else saved.get('mbCvr', 0))
+    # 유료전환: metabase.xlsx에서 집계된 값 우선, 없으면 config 값
+    paid_su = all_month_paid.get(k, saved.get('paidSu', 0))
+    mb_su_k = all_month_su.get(k, saved.get('mbSu', 0))
+    monthly_paid_list.append(paid_su)
+    monthly_paid_mb_list.append(mb_su_k)
+    monthly_paid_r_list.append(round(paid_su/mb_su_k*100, 1) if mb_su_k else 0)
 
 monthly_v_list.append(total_v)
 monthly_ga4_list.append(total_su)
@@ -462,7 +467,7 @@ def make_tab_html(months_data, cur_key):
 
     tabs_html = '<div id="monthTabBar" class="flex gap-1 mb-6" style="border-bottom:1px solid #e5e7eb;padding-bottom:0;">'
     for k in sorted_keys:
-        mo_label = int(k[5:])
+        mo = int(k[5:])
         label = mo_names.get(mo, f'{mo}월')
         is_cur = (k == cur_key)
         active_cls = 'border-b-2 border-blue-500 text-blue-600 font-semibold' if is_cur else 'text-gray-400 hover:text-gray-600'
