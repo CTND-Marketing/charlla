@@ -454,9 +454,8 @@ c = re.sub('id="lastUpdatedLabel"[^>]*>[^<]*<', 'id="lastUpdatedLabel" class="te
 
 # ── 월별 탭 HTML 생성
 def make_tab_html(months_data, cur_key):
-    # months_data에 저장된 월 + 현재 월 모두 탭으로 표시
-    all_keys = set(months_data.keys()) | {cur_key}
-    sorted_keys = sorted(all_keys)
+    # 현재 월만 탭으로 표시 (이전 월 데이터는 months에 유지, 탭 UI엔 미표시)
+    sorted_keys = [cur_key]
 
     mo_names = {1:'1월',2:'2월',3:'3월',4:'4월',5:'5월',6:'6월',
                 7:'7월',8:'8월',9:'9월',10:'10월',11:'11월',12:'12월'}
