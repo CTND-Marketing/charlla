@@ -311,13 +311,7 @@
       <div>
         <h1 class="text-3xl font-bold text-gray-800">찰나 유입 · 회원가입 리포트</h1>
         <div class="flex items-center gap-3 mt-2">
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-gray-400">마지막 업데이트</span>
-            <input type="date" id="lastUpdated" value="2026-04-20"
-              class="text-xs border border-gray-200 rounded-lg px-2 py-1 text-gray-600 focus:outline-none focus:border-blue-400"
-              onchange="updateLastUpdatedLabel()">
-            <span id="lastUpdatedLabel" class="text-xs text-gray-500 font-semibold">4/1 ~ 4/20 기준</span>
-          </div>
+          <span class="text-xs text-gray-400" id="lastUpdatedLabel">2026-04-20 기준</span>
         </div>
       </div>
       <div class="flex gap-2 items-center mt-1 flex-wrap">
@@ -336,7 +330,7 @@
   <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
     <div class="card p-6 border-2 border-blue-400">
       <p class="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-2">총 유입</p>
-      <h2 class="text-2xl font-bold text-gray-800" id="kpiTotalV">3,817</h2>
+      <h2 class="text-2xl font-bold text-gray-800" id="kpiTotalV">3,817명</h2>
     </div>
     <div class="card p-6 border-2 border-indigo-400">
       <p class="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-3">회원가입</p>
@@ -346,7 +340,7 @@
             <span class="w-2 h-2 rounded-full bg-blue-500 inline-block"></span>
             <span class="text-xs text-gray-400 font-semibold">GA4</span>
           </div>
-          <span class="text-2xl font-bold text-gray-800" id="kpiGA4Su">129</span>
+          <span class="text-2xl font-bold text-gray-800" id="kpiGA4Su">129명</span>
         </div>
         <div class="w-px self-stretch bg-gray-100"></div>
         <div>
@@ -388,33 +382,7 @@
       <h3 class="text-base font-bold text-gray-700 mb-1">주차별 유입 및 회원가입 추이</h3>
       <p class="text-sm text-gray-400 mb-3">당월 기준</p>
       <canvas id="weeklyAprilChart" height="235" style="display: block; box-sizing: border-box; height: 235px; width: 397.5px;" width="397"></canvas>
-      <!-- 방문자수 수동 입력 -->
-      <div class="grid grid-cols-4 gap-1.5 mt-3">
-        <div>
-          <label class="text-xs text-gray-300 block mb-0.5">1주차</label>
-          <input type="number" id="wv1" value="1710" min="0"
-            class="w-full border border-gray-200 rounded px-2 py-1 text-xs text-gray-600 focus:outline-none focus:border-blue-400"
-            oninput="updateWeeklyVisitors()">
-        </div>
-        <div>
-          <label class="text-xs text-gray-300 block mb-0.5">2주차</label>
-          <input type="number" id="wv2" value="1532" min="0"
-            class="w-full border border-gray-200 rounded px-2 py-1 text-xs text-gray-600 focus:outline-none focus:border-blue-400"
-            oninput="updateWeeklyVisitors()">
-        </div>
-        <div>
-          <label class="text-xs text-gray-300 block mb-0.5">3주차</label>
-          <input type="number" id="wv3" value="575" min="0"
-            class="w-full border border-gray-200 rounded px-2 py-1 text-xs text-gray-600 focus:outline-none focus:border-blue-400"
-            oninput="updateWeeklyVisitors()">
-        </div>
-        <div>
-          <label class="text-xs text-gray-300 block mb-0.5">4주차</label>
-          <input type="number" id="wv4" value="" min="0" placeholder="-"
-            class="w-full border border-gray-200 rounded px-2 py-1 text-xs text-gray-600 focus:outline-none focus:border-blue-400"
-            oninput="updateWeeklyVisitors()">
-        </div>
-      </div>
+      
     </div>
 
     <!-- 채널별 회원가입 전환율 -->
@@ -426,9 +394,9 @@
 
   </div>
 
-  <!-- 월별 유입 및 가입 추이 — 1단 -->
+  <!-- 월별 유입 및 회원가입 추이 — 1단 -->
   <div class="card p-6 mb-6">
-    <h3 class="text-base font-bold text-gray-700 mb-5">월별 유입 및 가입 추이</h3>
+    <h3 class="text-base font-bold text-gray-700 mb-5">월별 유입 및 회원가입 추이</h3>
     <canvas id="monthlyTopChart" height="291" width="874" style="display: block; box-sizing: border-box; height: 291.4px; width: 874.2px;"></canvas>
   </div>
 
@@ -522,28 +490,7 @@
       </div>
     </div>
 
-    <!-- 광고비 입력 -->
-    <div class="border-t border-gray-100 pt-5">
-      <p class="text-sm font-semibold text-gray-600 mb-3">광고비 입력 (만원)</p>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div>
-          <label class="text-xs text-gray-400 block mb-1">Google 키워드</label>
-          <input id="cost_google" type="number" value="250" min="0" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-blue-400" oninput="updateAdEff()">
-        </div>
-        <div>
-          <label class="text-xs text-gray-400 block mb-1">GDN</label>
-          <input id="cost_gdn" type="number" value="100" min="0" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-violet-400" oninput="updateAdEff()">
-        </div>
-        <div>
-          <label class="text-xs text-gray-400 block mb-1">Naver 검색광고</label>
-          <input id="cost_naver" type="number" value="210" min="0" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-emerald-400" oninput="updateAdEff()">
-        </div>
-        <div>
-          <label class="text-xs text-gray-400 block mb-1">카페24 배너</label>
-          <input id="cost_cafe24" type="number" value="369" min="0" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-amber-400" oninput="updateAdEff()">
-        </div>
-      </div>
-    </div>
+
   </div>
 
   <!-- INSIGHTS -->
@@ -672,7 +619,7 @@ rawData.forEach(({ cat, rows }) => {
 // 주차별 4월
 window.weeklyAprilChartRef = new Chart(document.getElementById('weeklyAprilChart'), {
   data: {
-    labels: ['4월 1주차 (4/1~4/8)', '4월 2주차 (4/9~4/15)', '4월 3주차 (4/16~4/22)', '4월 4주차 (4/23~4/30)'],
+    labels: [['4월 1주차','(4/1~4/8)'], ['4월 2주차','(4/9~4/15)'], ['4월 3주차','(4/16~4/22)'], ['4월 4주차','(4/23~4/30)']],
     datasets: [
       { type:'bar',  label:'방문자',       data:[1710,1532,917,null], backgroundColor:'rgba(59,130,246,0.15)', borderColor:'#3b82f6', borderWidth:2, borderRadius:6, borderSkipped:false, yAxisID:'y', order:3 },
       { type:'line', label:'Metabase 가입', data:[79,75,46,null],      borderColor:COLOR_MB, backgroundColor:'rgba(16,185,129,0.06)', borderWidth:2.5, pointBackgroundColor:COLOR_MB, pointRadius:6, borderDash:[4,3], tension:0, yAxisID:'y2', order:1 },
@@ -724,7 +671,7 @@ window.weeklyAprilChartRef = new Chart(document.getElementById('weeklyAprilChart
 // 월별 유입+가입
 window.monthlyTopChartRef = new Chart(document.getElementById('monthlyTopChart'), {
   data: {
-    labels: ['1월','2월','3월','4월(~20)'],
+    labels: ['1월','2월','3월','4월'],
     datasets: [
       { type:'bar',  label:'방문자',           data:[5046,4687,4532,3817], backgroundColor:'rgba(59,130,246,0.12)', borderColor:'#3b82f6', borderWidth:2, borderRadius:6, borderSkipped:false, yAxisID:'y',  order:4 },
       { type:'line', label:'Metabase 가입', data:[326,245,198,200],    borderColor:COLOR_MB, backgroundColor:'rgba(16,185,129,0.06)', borderWidth:2.5, pointBackgroundColor:COLOR_MB, pointRadius:5, borderDash:[4,3], tension:0.3, yAxisID:'y2', order:1 },
@@ -767,7 +714,7 @@ window.monthlyTopChartRef = new Chart(document.getElementById('monthlyTopChart')
 window.cvrTrendChartRef = new Chart(document.getElementById('cvrTrendTopChart'), {
   type: 'line',
   data: {
-    labels: ['1월','2월','3월','4월(~20)'],
+    labels: ['1월','2월','3월','4월'],
     datasets: [
       { label:'Metabase 가입율',  data:[6.46,5.23,4.37,5.24], borderColor:COLOR_MB, backgroundColor:'transparent', borderWidth:2.5, pointBackgroundColor:COLOR_MB, pointRadius:5, borderDash:[4,3], tension:0.3 },
       { label:'GA4 가입율', data:[6.28,4.74,3.38,3.38], borderColor:COLOR_GA, backgroundColor:'transparent', borderWidth:2.5, pointBackgroundColor:COLOR_GA, pointRadius:5, tension:0.3 },
@@ -835,7 +782,7 @@ window.cvrTrendChartRef = new Chart(document.getElementById('cvrTrendTopChart'),
 // 월별 유료 전환
 window.paidConvChartRef = new Chart(document.getElementById('paidConvChart'), {
   data: {
-    labels: ['1월','2월','3월','4월(~20)'],
+    labels: ['1월','2월','3월','4월'],
     datasets: [
       {
         type: 'bar',
@@ -974,7 +921,7 @@ window.cvrChartRef = new Chart(document.getElementById('cvrChart'), {
 window.channelTrendChartRef = new Chart(document.getElementById('channelTrendChart'), {
   type:'bar',
   data: {
-    labels: ['1월','2월','3월','4월(~20)'],
+    labels: ['1월','2월','3월','4월'],
     datasets: [
       { label:'검색/배너광고', data:[47, 43, 44, 51.2], su:[149,96,87,66],  backgroundColor:'#3b82f6cc', borderColor:'#3b82f6', borderWidth:1.5, borderRadius:4, borderSkipped:false },
       { label:'직접 유입',     data:[22, 25, 29, 24.8], su:[70, 56,57,32],  backgroundColor:'#10b981cc', borderColor:'#10b981', borderWidth:1.5, borderRadius:4, borderSkipped:false },
@@ -1220,18 +1167,7 @@ function manualSave() {
 
 // ── 업데이트 후 자동 저장
 
-// ── 마지막 업데이트 날짜
-function updateLastUpdatedLabel() {
-  const el = document.getElementById('lastUpdated');
-  const label = document.getElementById('lastUpdatedLabel');
-  if (!el || !label) return;
-  const d = new Date(el.value);
-  if (isNaN(d)) return;
-  const m = d.getMonth() + 1;
-  const day = d.getDate();
-  label.textContent = m + '/1 ~ ' + m + '/' + day + ' 기준';
-}
-updateLastUpdatedLabel();
+
 
 // ── 주차별 방문자수 수동 입력
 function updateWeeklyVisitors() {
