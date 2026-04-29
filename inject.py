@@ -281,8 +281,8 @@ def get_prev_months(cur_key, n=3):
 prev_keys = get_prev_months(cur_month_key, 3)
 month_labels_list = []
 for k in prev_keys:
-    mo = int(k[5:])
-    month_labels_list.append(f'{report_month}월')
+    mo_label = int(k[5:])
+    month_labels_list.append(f'{mo_label}월')
 month_labels_list.append(f'{report_month}월')
 
 # 채널 비중 추이 데이터 (이전 월은 저장된 데이터에서)
@@ -463,7 +463,7 @@ def make_tab_html(months_data, cur_key):
     tabs_html = '<div id="monthTabBar" class="flex gap-1 mb-6" style="border-bottom:1px solid #e5e7eb;padding-bottom:0;">'
     for k in sorted_keys:
         mo = int(k[5:])
-        label = mo_names.get(mo, f'{report_month}월')
+        label = mo_names.get(mo, f'{mo}월')
         is_cur = (k == cur_key)
         active_cls = 'border-b-2 border-blue-500 text-blue-600 font-semibold' if is_cur else 'text-gray-400 hover:text-gray-600'
         badge = '<span class="ml-1 text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full">최신</span>' if is_cur else ''
