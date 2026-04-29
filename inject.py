@@ -262,9 +262,9 @@ week_v = [w1, w2, w3, w4]
 week_mb = [week_mb_data[1], week_mb_data[2], week_mb_data[3],
            week_mb_data[4] if week_mb_data[4] > 0 else None]
 
-ranges_label = get_week_ranges(report_year, mo)
+ranges_label = get_week_ranges(report_year, report_month)
 weekly_labels = [
-    [f'{mo}월 {i+1}주차', f'({mo}/{ranges_label[i][0]}~{mo}/{ranges_label[i][1]})']
+    [f'{report_month}월 {i+1}주차', f'({report_month}/{ranges_label[i][0]}~{report_month}/{ranges_label[i][1]})']
     for i in range(4)
 ]
 
