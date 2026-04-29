@@ -7,6 +7,17 @@ def read_euckr(path):
     with open(path, 'rb') as f:
         return f.read().decode('euc-kr', errors='replace')
 
+# config.json 읽기
+try:
+    with open('data/config.json', encoding='utf-8') as f:
+        config = json.load(f)
+except:
+    config = {}
+
+last_updated     = config.get('lastUpdated', '2026-04-20')
+weekly_visitors  = config.get('weeklyVisitors', [None, None, None, None])
+ad_costs         = config.get('adCosts', {'google':250,'gdn':100,'naver':210,'cafe24':369})
+
 def map_visitor(g, s, m):
     g,s,m = g.strip().lower(), s.strip().lower(), m.strip().lower()
     if g == 'direct' or (s == '(direct)' and m == '(none)'): return ('direct','direct')
@@ -173,12 +184,12 @@ for name, color, fn in ch_defs:
     su = sum(d['su'] for _,_,d in rows)
     ch_data.append({'name':name,'v':v,'su':su,'color':color})
 
-# adEff
+# adEff - 광고비는 config.json에서 읽기 (만원 단위 → 원 변환)
 ae_defs = [
-    ("Google\nKeyword", 'paid search', ['google'], 2500000, '#3b82f6'),
-    ("GDN",             'display',     ['GDN banner'], 1000000, '#7c3aed'),
-    ("Naver\n검색광고", 'paid search', ['naver','brand_Search'], 2100000, '#10b981'),
-    ("카페24\n배너",    None,          ['cafe24 (ad)','CAFE24 banner'], 3690000, '#f59e0b'),
+    ("Google\nKeyword", 'paid search', ['google'],                    ad_costs.get('google',250)*10000, '#3b82f6'),
+    ("GDN",             'display',     ['GDN banner'],                ad_costs.get('gdn',100)*10000,    '#7c3aed'),
+    ("Naver\n검색광고", 'paid search', ['naver','brand_Search'],      ad_costs.get('naver',210)*10000,  '#10b981'),
+    ("카페24\n배너",    None,          ['cafe24 (ad)','CAFE24 banner'],ad_costs.get('cafe24',369)*10000, '#f59e0b'),
 ]
 adEff = []
 for name, cat, rnames, cost, color in ae_defs:
@@ -253,10 +264,30 @@ c = re.sub(r'id="funnelDrop1">[^<]*<','id="funnelDrop1">'+str(drop(total_ft,tota
 c = re.sub(r'id="funnelDrop2">[^<]*<','id="funnelDrop2">'+str(drop(total_ac,total_po))+'<',c)
 c = re.sub(r'id="funnelDrop3">[^<]*<','id="funnelDrop3">'+str(drop(total_po,total_su))+'<',c)
 
-w1,w2 = 1710, 1532
-w3 = max(0, total_v-w1-w2)
-for wid,wval in [('wv1',w1),('wv2',w2),('wv3',w3),('wv4','')]:
-    c = re.sub('id="'+wid+'" value="[^"]*"','id="'+wid+'" value="'+str(wval)+'"',c)
+# 주차별 방문자수 - config.json 우선, 없으면 자동 계산
+wv = weekly_visitors + [None] * (4 - len(weekly_visitors))  # 4개 보장
+w1 = wv[0] if wv[0] is not None else 0
+w2 = wv[1] if wv[1] is not None else 0
+w3 = wv[2] if wv[2] is not None else max(0, total_v - w1 - w2)
+w4 = wv[3]  # null 허용
+for wid, wval in [('wv1', w1), ('wv2', w2), ('wv3', w3), ('wv4', '' if w4 is None else w4)]:
+    c = re.sub('id="'+wid+'" value="[^"]*"', 'id="'+wid+'" value="'+str(wval)+'"', c)
+
+# 마지막 업데이트 날짜
+c = re.sub('id="lastUpdated" value="[^"]*"', 'id="lastUpdated" value="'+last_updated+'"', c)
+# 날짜 레이블
+try:
+    d = datetime.fromisoformat(last_updated)
+    date_label = f'{d.month}/1 ~ {d.month}/{d.day} 기준'
+except:
+    date_label = '날짜 미설정'
+c = re.sub('id="lastUpdatedLabel"[^>]*>[^<]*<', 'id="lastUpdatedLabel" class="text-xs text-gray-500 font-semibold">'+date_label+'<', c)
+
+# 광고비 - config.json 값으로 input value 교체
+for key in ['google', 'gdn', 'naver', 'cafe24']:
+    cost_val = ad_costs.get(key, 0)
+    c = re.sub('id="cost_'+key+'" [^>]*value="[^"]*"',
+               lambda m, v=str(cost_val): m.group(0)[:m.group(0).find('value="')] + 'value="'+v+'"', c)
 
 # 차트 데이터 script 주입
 monthly_v       = [5046,4687,4532,total_v]
@@ -267,7 +298,7 @@ monthly_mb_cvr  = [6.46,5.23,4.37,mb_cvr4]
 monthly_paid_mb = [monthSu[1],monthSu[2],monthSu[3],mb4]
 monthly_paid    = [monthPaid[1],monthPaid[2],monthPaid[3],monthPaid[4]]
 monthly_paid_r  = [round(monthPaid[k]/monthSu[k]*100,1) if monthSu[k] else 0 for k in [1,2,3,4]]
-week_v   = [w1, w2, w3, None]
+week_v   = [w1, w2, w3, w4]
 week_mb  = [weekSu[1], weekSu[2], weekSu[3], None]
 week_ga4 = [61, 49, max(0,total_su-61-49), None]
 
