@@ -462,7 +462,7 @@ def make_tab_html(months_data, cur_key):
 
     tabs_html = '<div id="monthTabBar" class="flex gap-1 mb-6" style="border-bottom:1px solid #e5e7eb;padding-bottom:0;">'
     for k in sorted_keys:
-        mo = int(k[5:])
+        mo_label = int(k[5:])
         label = mo_names.get(mo, f'{mo}월')
         is_cur = (k == cur_key)
         active_cls = 'border-b-2 border-blue-500 text-blue-600 font-semibold' if is_cur else 'text-gray-400 hover:text-gray-600'
