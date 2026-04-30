@@ -20,16 +20,36 @@ def read_euckr(path):
     with open(path, 'rb') as f:
         return f.read().decode('euc-kr', errors='replace')
 
-# ── config.json 읽기
+# ── config.json 읽기 (자동 관리)
 try:
     with open('data/config.json', encoding='utf-8') as f:
         config = json.load(f)
 except:
     config = {}
 
-last_updated    = config.get('lastUpdated', '2026-04-29')
-weekly_visitors = config.get('weeklyVisitors', [None, None, None, None])
-ad_costs        = config.get('adCosts', {'google':250,'gdn':100,'naver':210,'cafe24':369})
+# ── manual.json 읽기 (매달 수동 업데이트)
+try:
+    with open('data/manual.json', encoding='utf-8') as f:
+        manual = json.load(f)
+except:
+    manual = {}
+
+last_updated    = manual.get('날짜', '2026-04-29')
+weekly_visitors = manual.get('주차별_방문자수', [None, None, None, None])
+ad_costs_raw    = manual.get('광고비_만원', {})
+ad_costs        = {
+    'google': ad_costs_raw.get('Google검색광고', 250),
+    'gdn':    ad_costs_raw.get('GDN', 100),
+    'naver':  ad_costs_raw.get('Naver', 210),
+    'cafe24': ad_costs_raw.get('카페24', 369),
+}
+ad_su_raw       = manual.get('광고_가입수', {})
+ad_su_manual    = {
+    'google': ad_su_raw.get('Google검색광고', None),
+    'gdn':    ad_su_raw.get('GDN', None),
+    'naver':  ad_su_raw.get('Naver', None),
+    'cafe24': ad_su_raw.get('카페24', None),
+}
 ga4_cumulative  = config.get('ga4Cumulative', [0, 0, 0, 0])
 months_data     = config.get('months', {})  # 월별 저장 데이터
 
@@ -208,7 +228,7 @@ ch_defs = [
     ('직접 유입',    '#10b981', lambda ct,n: ct=='direct'),
     ('카페24',       '#f59e0b', lambda ct,n: n in ('cafe24 (ad)','CAFE24 banner')),
     ('자연유입',     '#06b6d4', lambda ct,n: ct=='organic search' or n in ('blog','ai')),
-    ('기타',         '#cbd5e1', lambda ct,n: (ct in ('unassigned','SNS') and n not in ('blog','ai')) or (ct=='referral' and n not in ('cafe24 (ad)',)) or (ct=='display' and n!='GDN banner')),
+    ('기타',         '#cbd5e1', lambda ct,n: (ct in ('unassigned','SNS')) or (ct=='referral' and n not in ('cafe24 (ad)',)) or (ct=='display' and n!='GDN banner')),
 ]
 ch_data = []
 for name, color, fn in ch_defs:
@@ -219,7 +239,7 @@ for name, color, fn in ch_defs:
 
 # ── adEff
 ae_defs = [
-    ("Google\nKeyword", 'paid search', ['google'],                     ad_costs.get('google',250)*10000, '#3b82f6'),
+    ("Google\n검색광고", 'paid search', ['google'],                     ad_costs.get('google',250)*10000, '#3b82f6'),
     ("GDN",             'display',     ['GDN banner'],                 ad_costs.get('gdn',100)*10000,    '#7c3aed'),
     ("Naver\n검색광고", 'paid search', ['naver','brand_Search'],       ad_costs.get('naver',210)*10000,  '#10b981'),
     ("카페24\n배너",    None,          ['cafe24 (ad)','CAFE24 banner'], ad_costs.get('cafe24',369)*10000, '#f59e0b'),
@@ -229,6 +249,10 @@ for name, cat, rnames, cost, color in ae_defs:
     rows = [(ct,n,d) for ct,n,d in all_data if (cat is None or ct==cat) and n in rnames]
     v  = sum(d['v']  for _,_,d in rows)
     su = sum(d['su'] for _,_,d in rows)
+    # 수동 입력 가입수가 있으면 우선 사용
+    su_key = ['google','gdn','naver','cafe24'][len(adEff)]
+    if su_key in ad_su_manual:
+        su = ad_su_manual[su_key]
     adEff.append({'name':name,'v':v,'su':su,'cost':cost,'color':color})
 
 # ── 현재 월 데이터를 months에 저장
@@ -281,8 +305,8 @@ def get_prev_months(cur_key, n=3):
 prev_keys = get_prev_months(cur_month_key, 3)
 month_labels_list = []
 for k in prev_keys:
-    mo_label = int(k[5:])
-    month_labels_list.append(f'{mo_label}월')
+    mo = int(k[5:])
+    month_labels_list.append(f'{mo}월')
 month_labels_list.append(f'{report_month}월')
 
 # 채널 비중 추이 데이터 (이전 월은 저장된 데이터에서)
@@ -319,17 +343,12 @@ for k in prev_keys:
     sv = saved.get('totalV', 0)
     monthly_v_list.append(sv)
     monthly_ga4_list.append(saved.get('totalSu', 0))
-    monthly_mb_list.append(all_month_su.get(k, saved.get('mbSu', 0)))
-    mb_su_k2 = all_month_su.get(k, saved.get('mbSu', 0))
-    mb_cvr_k = round(saved.get('totalSu', 0)/sv*100, 2) if sv else 0
+    monthly_mb_list.append(saved.get('mbSu', 0))
     monthly_ga4_cvr_list.append(saved.get('ga4Cvr', 0))
-    monthly_mb_cvr_list.append(round(mb_su_k2/sv*100, 2) if sv else saved.get('mbCvr', 0))
-    # 유료전환: metabase.xlsx에서 집계된 값 우선, 없으면 config 값
-    paid_su = all_month_paid.get(k, saved.get('paidSu', 0))
-    mb_su_k = all_month_su.get(k, saved.get('mbSu', 0))
-    monthly_paid_list.append(paid_su)
-    monthly_paid_mb_list.append(mb_su_k)
-    monthly_paid_r_list.append(round(paid_su/mb_su_k*100, 1) if mb_su_k else 0)
+    monthly_mb_cvr_list.append(saved.get('mbCvr', 0))
+    monthly_paid_list.append(saved.get('paidSu', 0))
+    monthly_paid_mb_list.append(saved.get('mbSu', 0))
+    monthly_paid_r_list.append(saved.get('paidRate', 0))
 
 monthly_v_list.append(total_v)
 monthly_ga4_list.append(total_su)
@@ -363,12 +382,15 @@ months_data[cur_month_key] = {
     'totalPo':      total_po,
     'ga4Cumulative': new_cum,
 }
-config['months'] = months_data
-config['ga4Cumulative'] = new_cum
+# config.json에는 자동 관리 항목만 저장 (manual.json 항목 제외)
+save_config = {
+    'ga4Cumulative': new_cum,
+    'months': months_data,
+}
 
 try:
     with open('data/config.json', 'w', encoding='utf-8') as f:
-        json.dump(config, f, ensure_ascii=False, indent=2)
+        json.dump(save_config, f, ensure_ascii=False, indent=2)
     print(f"config.json 저장 완료 ({cur_month_key})")
 except Exception as e:
     print(f"config.json 저장 실패: {e}")
@@ -441,7 +463,8 @@ for i, k in enumerate(['google','gdn','naver','cafe24']):
     cvr_ = round(su/v*100,2) if v else 0
     cpa_ = round(cost/su/10000) if su else 0
     c = rep(c,'kpi_v_'+k,   str(v))
-    c = rep(c,'kpi_su_'+k,  str(su))
+    # 가입수는 input value로 주입
+    c = re.sub('id="kpi_su_'+k+'" value="[^"]*"', 'id="kpi_su_'+k+'" value="'+str(su)+'"', c)
     c = rep(c,'kpi_cvr_'+k, str(cvr_)+'%')
     c = rep(c,'kpi_cpa_'+k, str(cpa_)+'만')
 
