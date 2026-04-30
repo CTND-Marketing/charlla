@@ -1,6 +1,3 @@
-
-
-
 <!DOCTYPE html>
 <html lang="ko"><head>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.13/html-to-image.min.js" integrity="sha512-iZ2ORl595Wx6miw+GuadDet4WQbdSWS3JLMoNfY8cRGoEFy6oT3G9IbcrBeL6AfkgpA51ETt/faX6yLV+/gFJg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -425,7 +422,7 @@
         <p class="text-xs text-gray-400 font-semibold mb-3">Google 검색광고</p>
         <div class="grid grid-cols-3 gap-1 text-center mb-3">
           <div><p class="text-sm text-gray-400 mb-0.5">유입</p><p class="text-sm font-bold text-gray-800" id="kpi_v_google">1223</p></div>
-          <div><p class="text-sm text-gray-400 mb-0.5">가입</p><input type="number" id="kpi_su_google" value="52" min="0" class="text-sm font-bold text-gray-800 w-14 border-b border-gray-200 focus:outline-none focus:border-blue-400 bg-transparent text-center" oninput="updateAdEffManual()"></div>
+          <div><p class="text-sm text-gray-400 mb-0.5">가입</p><p class="text-sm font-bold text-gray-800" id="kpi_su_google">52</p></div>
           <div><p class="text-sm text-gray-400 mb-0.5">가입율</p><p class="text-sm font-bold text-blue-500" id="kpi_cvr_google">4.25%</p></div>
         </div>
         <div class="border-t border-gray-100 pt-3 grid grid-cols-2 gap-1 text-center">
@@ -437,7 +434,7 @@
         <p class="text-xs text-gray-400 font-semibold mb-3">GDN 광고</p>
         <div class="grid grid-cols-3 gap-1 text-center mb-3">
           <div><p class="text-sm text-gray-400 mb-0.5">유입</p><p class="text-sm font-bold text-gray-800" id="kpi_v_gdn">984</p></div>
-          <div><p class="text-sm text-gray-400 mb-0.5">가입</p><input type="number" id="kpi_su_gdn" value="7" min="0" class="text-sm font-bold text-gray-800 w-14 border-b border-gray-200 focus:outline-none focus:border-violet-400 bg-transparent text-center" oninput="updateAdEffManual()"></div>
+          <div><p class="text-sm text-gray-400 mb-0.5">가입</p><p class="text-sm font-bold text-violet-500" id="kpi_su_gdn">7</p></div>
           <div><p class="text-sm text-gray-400 mb-0.5">가입율</p><p class="text-sm font-bold text-violet-500" id="kpi_cvr_gdn">0.71%</p></div>
         </div>
         <div class="border-t border-gray-100 pt-3 grid grid-cols-2 gap-1 text-center">
@@ -449,7 +446,7 @@
         <p class="text-xs text-gray-400 font-semibold mb-3">Naver 검색광고</p>
         <div class="grid grid-cols-3 gap-1 text-center mb-3">
           <div><p class="text-sm text-gray-400 mb-0.5">유입</p><p class="text-sm font-bold text-gray-800" id="kpi_v_naver">243</p></div>
-          <div><p class="text-sm text-gray-400 mb-0.5">가입</p><input type="number" id="kpi_su_naver" value="7" min="0" class="text-sm font-bold text-gray-800 w-14 border-b border-gray-200 focus:outline-none focus:border-emerald-400 bg-transparent text-center" oninput="updateAdEffManual()"></div>
+          <div><p class="text-sm text-gray-400 mb-0.5">가입</p><p class="text-sm font-bold text-emerald-500" id="kpi_su_naver">7</p></div>
           <div><p class="text-sm text-gray-400 mb-0.5">가입율</p><p class="text-sm font-bold text-emerald-500" id="kpi_cvr_naver">2.88%</p></div>
         </div>
         <div class="border-t border-gray-100 pt-3 grid grid-cols-2 gap-1 text-center">
@@ -461,7 +458,7 @@
         <p class="text-xs text-gray-400 font-semibold mb-3">카페24 배너 광고</p>
         <div class="grid grid-cols-3 gap-1 text-center mb-3">
           <div><p class="text-sm text-gray-400 mb-0.5">유입</p><p class="text-sm font-bold text-gray-800" id="kpi_v_cafe24">282</p></div>
-          <div><p class="text-sm text-gray-400 mb-0.5">가입</p><input type="number" id="kpi_su_cafe24" value="17" min="0" class="text-sm font-bold text-gray-800 w-14 border-b border-gray-200 focus:outline-none focus:border-amber-400 bg-transparent text-center" oninput="updateAdEffManual()"></div>
+          <div><p class="text-sm text-gray-400 mb-0.5">가입</p><p class="text-sm font-bold text-amber-500" id="kpi_su_cafe24">17</p></div>
           <div><p class="text-sm text-gray-400 mb-0.5">가입율</p><p class="text-sm font-bold text-amber-500" id="kpi_cvr_cafe24">6.03%</p></div>
         </div>
         <div class="border-t border-gray-100 pt-3 grid grid-cols-2 gap-1 text-center">
@@ -1029,7 +1026,6 @@ function updateAdEff() {
   }
 }
 
-function updateAdEffManual() { updateAdEff(); }
 
 // ── localStorage 저장/복원
 const LS_KEY = 'charlla_dashboard_v1';
