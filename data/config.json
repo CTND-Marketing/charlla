@@ -1,23 +1,10 @@
 {
-  "lastUpdated": "2026-04-29",
-  "weeklyVisitors": [
-    1710,
-    1532,
-    1356,
-    1033
-  ],
   "ga4Cumulative": [
     61,
     110,
     145,
     176
   ],
-  "adCosts": {
-    "google": 250,
-    "gdn": 100,
-    "naver": 210,
-    "cafe24": 369
-  },
   "months": {
     "2026-01": {
       "lastUpdated": "2026-01-31",
