@@ -251,9 +251,10 @@ for name, cat, rnames, cost, color in ae_defs:
     su = sum(d['su'] for _,_,d in rows)
     # 수동 입력 가입수가 있으면 우선 사용
     su_key = ['google','gdn','naver','cafe24'][len(adEff)]
-    if su_key in ad_su_manual:
-        su = ad_su_manual[su_key]
-    adEff.append({'name':name,'v':v,'su':su,'cost':cost,'color':color})
+    manual_su = ad_su_manual.get(su_key)
+    if manual_su is not None:
+        su = int(manual_su)
+    adEff.append({'name':name,'v':v or 0,'su':su or 0,'cost':cost,'color':color})
 
 # ── 현재 월 데이터를 months에 저장
 def cvr_type(v, su):
@@ -460,7 +461,7 @@ for i, k in enumerate(['google','gdn','naver','cafe24']):
     v  = adEff[i]['v']
     su = adEff[i]['su']
     cost = adEff[i]['cost']
-    cvr_ = round(su/v*100,2) if v else 0
+    cvr_ = round(su/v*100,2) if v and v > 0 else 0
     cpa_ = round(cost/su/10000) if su else 0
     c = rep(c,'kpi_v_'+k,   str(v))
     # 가입수는 input value로 주입
