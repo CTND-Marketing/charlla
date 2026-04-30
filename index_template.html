@@ -1,5 +1,6 @@
 
 
+
 <!DOCTYPE html>
 <html lang="ko"><head>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.13/html-to-image.min.js" integrity="sha512-iZ2ORl595Wx6miw+GuadDet4WQbdSWS3JLMoNfY8cRGoEFy6oT3G9IbcrBeL6AfkgpA51ETt/faX6yLV+/gFJg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -421,10 +422,10 @@
     <!-- KPI 카드 -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" id="adKpiCards">
       <div class="border border-gray-100 rounded-xl p-4 border-t-4 border-t-blue-500">
-        <p class="text-xs text-gray-400 font-semibold mb-3">Google 키워드 광고</p>
+        <p class="text-xs text-gray-400 font-semibold mb-3">Google 검색광고</p>
         <div class="grid grid-cols-3 gap-1 text-center mb-3">
           <div><p class="text-sm text-gray-400 mb-0.5">유입</p><p class="text-sm font-bold text-gray-800" id="kpi_v_google">1223</p></div>
-          <div><p class="text-sm text-gray-400 mb-0.5">가입</p><input type="number" id="kpi_su_google" value="52</p></div>
+          <div><p class="text-sm text-gray-400 mb-0.5">가입</p><input type="number" id="kpi_su_google" value="52" min="0" class="text-sm font-bold text-gray-800 w-14 border-b border-gray-200 focus:outline-none focus:border-blue-400 bg-transparent text-center" oninput="updateAdEffManual()"></div>
           <div><p class="text-sm text-gray-400 mb-0.5">가입율</p><p class="text-sm font-bold text-blue-500" id="kpi_cvr_google">4.25%</p></div>
         </div>
         <div class="border-t border-gray-100 pt-3 grid grid-cols-2 gap-1 text-center">
@@ -436,7 +437,7 @@
         <p class="text-xs text-gray-400 font-semibold mb-3">GDN 광고</p>
         <div class="grid grid-cols-3 gap-1 text-center mb-3">
           <div><p class="text-sm text-gray-400 mb-0.5">유입</p><p class="text-sm font-bold text-gray-800" id="kpi_v_gdn">984</p></div>
-          <div><p class="text-sm text-gray-400 mb-0.5">가입</p><p class="text-sm font-bold text-gray-800" id="kpi_su_gdn">7</p></div>
+          <div><p class="text-sm text-gray-400 mb-0.5">가입</p><input type="number" id="kpi_su_gdn" value="7" min="0" class="text-sm font-bold text-gray-800 w-14 border-b border-gray-200 focus:outline-none focus:border-violet-400 bg-transparent text-center" oninput="updateAdEffManual()"></div>
           <div><p class="text-sm text-gray-400 mb-0.5">가입율</p><p class="text-sm font-bold text-violet-500" id="kpi_cvr_gdn">0.71%</p></div>
         </div>
         <div class="border-t border-gray-100 pt-3 grid grid-cols-2 gap-1 text-center">
@@ -448,7 +449,7 @@
         <p class="text-xs text-gray-400 font-semibold mb-3">Naver 검색광고</p>
         <div class="grid grid-cols-3 gap-1 text-center mb-3">
           <div><p class="text-sm text-gray-400 mb-0.5">유입</p><p class="text-sm font-bold text-gray-800" id="kpi_v_naver">243</p></div>
-          <div><p class="text-sm text-gray-400 mb-0.5">가입</p><p class="text-sm font-bold text-gray-800" id="kpi_su_naver">7</p></div>
+          <div><p class="text-sm text-gray-400 mb-0.5">가입</p><input type="number" id="kpi_su_naver" value="7" min="0" class="text-sm font-bold text-gray-800 w-14 border-b border-gray-200 focus:outline-none focus:border-emerald-400 bg-transparent text-center" oninput="updateAdEffManual()"></div>
           <div><p class="text-sm text-gray-400 mb-0.5">가입율</p><p class="text-sm font-bold text-emerald-500" id="kpi_cvr_naver">2.88%</p></div>
         </div>
         <div class="border-t border-gray-100 pt-3 grid grid-cols-2 gap-1 text-center">
@@ -460,7 +461,7 @@
         <p class="text-xs text-gray-400 font-semibold mb-3">카페24 배너 광고</p>
         <div class="grid grid-cols-3 gap-1 text-center mb-3">
           <div><p class="text-sm text-gray-400 mb-0.5">유입</p><p class="text-sm font-bold text-gray-800" id="kpi_v_cafe24">282</p></div>
-          <div><p class="text-sm text-gray-400 mb-0.5">가입</p><p class="text-sm font-bold text-gray-800" id="kpi_su_cafe24">17</p></div>
+          <div><p class="text-sm text-gray-400 mb-0.5">가입</p><input type="number" id="kpi_su_cafe24" value="17" min="0" class="text-sm font-bold text-gray-800 w-14 border-b border-gray-200 focus:outline-none focus:border-amber-400 bg-transparent text-center" oninput="updateAdEffManual()"></div>
           <div><p class="text-sm text-gray-400 mb-0.5">가입율</p><p class="text-sm font-bold text-amber-500" id="kpi_cvr_cafe24">6.03%</p></div>
         </div>
         <div class="border-t border-gray-100 pt-3 grid grid-cols-2 gap-1 text-center">
@@ -995,38 +996,40 @@ const adEffChartRef = new Chart(document.getElementById('adEffChart'), {
 
 // ── 광고비 입력 → 실시간 업데이트
 function updateAdEff() {
-  const costs = [
-    parseInt(document.getElementById('cost_google').value)||0,
-    parseInt(document.getElementById('cost_gdn').value)||0,
-    parseInt(document.getElementById('cost_naver').value)||0,
-    parseInt(document.getElementById('cost_cafe24').value)||0,
-  ];
-  const sus = [25, 20, 6, 17];
   const ids = ['google','gdn','naver','cafe24'];
-  const costMult = 10000;
-
   ids.forEach((id, i) => {
-    const costWon = costs[i] * costMult;
-    const cpa = sus[i] > 0 ? Math.round(costWon / sus[i]) : 0;
-    const cpaMan = (cpa / 10000).toFixed(1).replace(/\.0$/, '');
-    document.getElementById('kpi_cost_' + id).textContent = costs[i] + '만';
+    const suEl = document.getElementById('kpi_su_' + id);
+    const su = suEl ? (parseInt(suEl.value) || 0) : (adEff[i].su || 0);
+    const costEl = document.getElementById('cost_' + id);
+    const cost = costEl ? (parseInt(costEl.value) || 0) : 0;
+    const costWon = cost * 10000;
+    const cpa = su > 0 ? Math.round(costWon / su) : 0;
+    const cpaMan = cpa >= 10000 ? (cpa/10000).toFixed(1).replace(/\.0$/,'') : cpa;
+    const cvrVal = adEff[i].v > 0 ? (su / adEff[i].v * 100).toFixed(2) : 0;
+    if (document.getElementById('kpi_cost_' + id)) document.getElementById('kpi_cost_' + id).textContent = cost + '만';
     document.getElementById('kpi_cpa_' + id).textContent = cpaMan + '만';
+    document.getElementById('kpi_cvr_' + id).textContent = cvrVal + '%';
+    adEff[i].su  = su;
     adEff[i].cost = costWon;
-    adEff[i].cpa = cpa;
+    adEff[i].cpa  = cpa;
+    adEff[i].cvr  = parseFloat(cvrVal);
   });
-
-  // CPA 차트 업데이트
-  adCpaChartRef.data.datasets[0].data = adEff.map(d => d.cpa);
-  adCpaChartRef.update();
-
-  // 버블 차트 업데이트
-  const maxC = Math.max(...adEff.map(d => d.cost));
-  adEffChartRef.data.datasets.forEach((ds, i) => {
-    ds.data[0].y = Math.round(adEff[i].cpa / 10000);
-    ds.data[0].r = Math.max(8, adEff[i].cost / maxC * 28);
-  });
-  adEffChartRef.update();
+  if (typeof adCpaChartRef !== 'undefined' && adCpaChartRef) {
+    adCpaChartRef.data.datasets[0].data = adEff.map(d => d.cpa);
+    adCpaChartRef.update();
+  }
+  if (typeof adEffChartRef !== 'undefined' && adEffChartRef) {
+    const maxC = Math.max(...adEff.map(d => d.cost));
+    adEffChartRef.data.datasets.forEach((ds, i) => {
+      ds.data[0].x = adEff[i].cvr;
+      ds.data[0].y = Math.round(adEff[i].cpa / 10000);
+      ds.data[0].r = Math.max(8, adEff[i].cost / maxC * 28);
+    });
+    adEffChartRef.update();
+  }
 }
+
+function updateAdEffManual() { updateAdEff(); }
 
 // ── localStorage 저장/복원
 const LS_KEY = 'charlla_dashboard_v1';
