@@ -375,46 +375,38 @@
     </div>
   </div>
 
-  <!-- 상단: 주차별(좌) + 전환퍼널(우) -->
+  <!-- 주차별 + 월별 회원가입율 -->
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-
-    <!-- 주차별 -->
     <div class="card p-6">
       <h3 class="text-base font-bold text-gray-700 mb-1">주차별 유입 및 회원가입 추이</h3>
       <p class="text-sm text-gray-400 mb-3">당월 기준</p>
       <canvas id="weeklyAprilChart" height="235" style="display: block; box-sizing: border-box; height: 235px; width: 397.5px;" width="397"></canvas>
-      
     </div>
-
-    <!-- 채널별 회원가입 전환율 -->
     <div class="card p-6">
-      <h3 class="text-base font-bold text-gray-700 mb-1">채널별 회원가입 전환율</h3>
-      <p class="text-sm text-gray-400 mb-5">당월 기준</p>
-      <canvas id="cvrChart" height="265" width="397" style="display: block; box-sizing: border-box; height: 265px; width: 397.5px;"></canvas>
+      <h3 class="text-base font-bold text-gray-700 mb-5">월별 회원가입율 추이</h3>
+      <canvas id="cvrTrendTopChart" height="265" width="397" style="display: block; box-sizing: border-box; height: 265px; width: 397.5px;"></canvas>
     </div>
-
   </div>
 
-  <!-- 월별 유입 및 회원가입 추이 — 1단 -->
+  <!-- 월별 유입 및 회원가입 추이 -->
   <div class="card p-6 mb-6">
     <h3 class="text-base font-bold text-gray-700 mb-5">월별 유입 및 회원가입 추이</h3>
     <canvas id="monthlyTopChart" height="291" width="874" style="display: block; box-sizing: border-box; height: 291.4px; width: 874.2px;"></canvas>
   </div>
 
-  <!-- 월별 전환율 + 유료전환 2열 -->
+  <!-- 월별 유료전환 + 채널별 전환율 -->
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-    <div class="card p-6">
-      <h3 class="text-base font-bold text-gray-700 mb-5">월별 회원가입율 추이</h3>
-      <canvas id="cvrTrendTopChart" height="265" width="397" style="display: block; box-sizing: border-box; height: 265px; width: 397.5px;"></canvas>
-    </div>
     <div class="card p-6">
       <h3 class="text-base font-bold text-gray-700 mb-1">월별 유료 전환 추이</h3>
       <p class="text-sm text-gray-400 mb-5">가입월 기준 유료 전환 집계</p>
       <canvas id="paidConvChart" height="265" width="397" style="display: block; box-sizing: border-box; height: 265px; width: 397.5px;"></canvas>
     </div>
+    <div class="card p-6">
+      <h3 class="text-base font-bold text-gray-700 mb-1">채널별 회원가입 전환율</h3>
+      <p class="text-sm text-gray-400 mb-5">당월 기준</p>
+      <canvas id="cvrChart" height="265" width="397" style="display: block; box-sizing: border-box; height: 265px; width: 397.5px;"></canvas>
+    </div>
   </div>
-
-
 
   <!-- 3개월 채널 비중 추이 -->
   <div class="card p-6 mb-6">
@@ -620,7 +612,7 @@ rawData.forEach(({ cat, rows }) => {
 // 주차별 4월
 window.weeklyAprilChartRef = new Chart(document.getElementById('weeklyAprilChart'), {
   data: {
-    labels: [['4월 1주차','(4/1~4/8)'], ['4월 2주차','(4/9~4/15)'], ['4월 3주차','(4/16~4/22)'], ['4월 4주차','(4/23~4/30)']],
+    labels: ['4월 1주차 (4/1~4/8)', '4월 2주차 (4/9~4/15)', '4월 3주차 (4/16~4/22)', '4월 4주차 (4/23~4/30)'],
     datasets: [
       { type:'bar',  label:'방문자',       data:[1710,1532,917,null], backgroundColor:'rgba(59,130,246,0.15)', borderColor:'#3b82f6', borderWidth:2, borderRadius:6, borderSkipped:false, yAxisID:'y', order:3 },
       { type:'line', label:'Metabase 가입', data:[79,75,46,null],      borderColor:COLOR_MB, backgroundColor:'rgba(16,185,129,0.06)', borderWidth:2.5, pointBackgroundColor:COLOR_MB, pointRadius:6, borderDash:[4,3], tension:0, yAxisID:'y2', order:1 },
@@ -1168,7 +1160,7 @@ function manualSave() {
 
 // ── 업데이트 후 자동 저장
 
-
+// ── 마지막 업데이트 날짜 (inject.py에서 주입)
 
 // ── 주차별 방문자수 수동 입력
 function updateWeeklyVisitors() {
