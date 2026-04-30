@@ -249,11 +249,12 @@ for name, cat, rnames, cost, color in ae_defs:
     rows = [(ct,n,d) for ct,n,d in all_data if (cat is None or ct==cat) and n in rnames]
     v  = sum(d['v']  for _,_,d in rows)
     su = sum(d['su'] for _,_,d in rows)
-    # 수동 입력 가입수가 있으면 우선 사용
+    # google/gdn만 수동 입력, naver/cafe24는 raw data 자동 카운팅
     su_key = ['google','gdn','naver','cafe24'][len(adEff)]
-    manual_su = ad_su_manual.get(su_key)
-    if manual_su is not None:
-        su = int(manual_su)
+    if su_key in ('google', 'gdn'):
+        manual_su = ad_su_manual.get(su_key)
+        if manual_su is not None:
+            su = int(manual_su)
     adEff.append({'name':name,'v':v or 0,'su':su or 0,'cost':cost,'color':color})
 
 # ── 현재 월 데이터를 months에 저장
@@ -464,8 +465,8 @@ for i, k in enumerate(['google','gdn','naver','cafe24']):
     cvr_ = round(su/v*100,2) if v and v > 0 else 0
     cpa_ = round(cost/su/10000) if su else 0
     c = rep(c,'kpi_v_'+k,   str(v))
-    # 가입수는 input value로 주입
-    c = re.sub('id="kpi_su_'+k+'" value="[^"]*"', 'id="kpi_su_'+k+'" value="'+str(su)+'"', c)
+    # 가입수는 p 태그 textContent로 주입
+    c = re.sub(r'id="kpi_su_' + k + r'">[^<]*</p>', 'id="kpi_su_' + k + '">' + str(su) + '</p>', c)
     c = rep(c,'kpi_cvr_'+k, str(cvr_)+'%')
     c = rep(c,'kpi_cpa_'+k, str(cpa_)+'만')
 
