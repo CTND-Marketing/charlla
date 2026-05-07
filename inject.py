@@ -317,7 +317,7 @@ w3 = wv[2] if wv[2] is not None else 0
 w4 = wv[3]
 week_v = [w1, w2, w3, w4]
 week_mb = [
-    week_mb_data[i] if i < cur_week else None
+    week_mb_data[i] if i <= cur_week else None
     for i in range(1, 5)
 ]
 
