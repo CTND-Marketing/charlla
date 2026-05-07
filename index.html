@@ -1764,8 +1764,8 @@ if(window.channelTrendChartRef){window.channelTrendChartRef.data.labels=["1\uc6d
 if(window.channelTrendChartRef){window.channelTrendChartRef.data.labels=["1\uc6d4", "2\uc6d4", "3\uc6d4", "4\uc6d4", "5\uc6d4"];window.channelTrendChartRef.data.datasets[3].data=[9.1, 12.2, 13.1, 9.0, 7.7];window.channelTrendChartRef.data.datasets[3].su=[29, 27, 20, 17, 1];}
 if(window.channelTrendChartRef){window.channelTrendChartRef.data.labels=["1\uc6d4", "2\uc6d4", "3\uc6d4", "4\uc6d4", "5\uc6d4"];window.channelTrendChartRef.data.datasets[4].data=[2.5, 1.8, 3.9, 2.7, 0.0];window.channelTrendChartRef.data.datasets[4].su=[8, 4, 6, 5, 0];}
 if(window.channelTrendChartRef){window.channelTrendChartRef.update();}
-if(typeof adCpaChartRef!=="undefined"&&adCpaChartRef){adCpaChartRef.data.datasets[0].data=[650000, 1600000, 0, 936000];adCpaChartRef.update();}
-if(typeof adEffChartRef!=="undefined"&&adEffChartRef){adEffChartRef.data.datasets[0].data=[{x:3.17,y:65,r:16}];adEffChartRef.data.datasets[1].data=[{x:0.52,y:160,r:10}];adEffChartRef.data.datasets[2].data=[{x:0.0,y:0,r:8}];adEffChartRef.data.datasets[3].data=[{x:5.75,y:94,r:28}];adEffChartRef.update();}
+if(typeof adCpaChartRef!=="undefined"&&adCpaChartRef){adCpaChartRef.data.datasets[0].data=[650000, 1600000, 0, 936000];adCpaChartRef.options.scales.y.max=undefined;adCpaChartRef.update();}
+if(typeof adEffChartRef!=="undefined"&&adEffChartRef){adEffChartRef.data.datasets[0].data=[{x:3.17,y:65,r:16}];adEffChartRef.data.datasets[1].data=[{x:0.52,y:160,r:10}];adEffChartRef.data.datasets[2].data=[{x:0.0,y:0,r:8}];adEffChartRef.data.datasets[3].data=[{x:5.75,y:94,r:28}];adEffChartRef.options.scales.y.max=undefined;adEffChartRef.options.scales.x.max=undefined;adEffChartRef.update();}
 });
 </script>
 
@@ -1775,8 +1775,12 @@ var _curMonth = '2026-05';
 var _monthNames = {"2026-04": "4월", "2026-05": "5월"};
 
 function switchMonth(key) {
-  if (key === _curMonth) return;
-  var d = _allMonths[key];
+  // 현재 활성 탭과 같으면 무시
+  var _activeTab = document.querySelector('.tab-btn.border-b-2');
+  if (_activeTab && _activeTab.dataset.month === key) return;
+  var d = key === _curMonth ? null : _allMonths[key];
+  // 현재 월(5월) 탭으로 돌아오는 경우 페이지 리로드
+  if (key === _curMonth) { window.location.reload(); return; }
   if (!d) return;
 
   // 탭 UI 업데이트
@@ -1863,6 +1867,7 @@ function switchMonth(key) {
     });
     if (typeof adCpaChartRef !== 'undefined' && adCpaChartRef) {
       adCpaChartRef.data.datasets[0].data = d.adEff.map(function(ae){return ae.su?Math.round(ae.cost/ae.su):0;});
+      adCpaChartRef.options.scales.y.max = undefined;
       adCpaChartRef.update();
     }
     if (typeof adEffChartRef !== 'undefined' && adEffChartRef) {
@@ -1872,6 +1877,8 @@ function switchMonth(key) {
         var cpa3 = ae.su?Math.round(ae.cost/ae.su/10000):0;
         adEffChartRef.data.datasets[i].data = [{x:parseFloat(cvr3),y:cpa3,r:Math.max(8,Math.round(ae.cost/maxC2*28))}];
       });
+      adEffChartRef.options.scales.y.max = undefined;
+      adEffChartRef.options.scales.x.max = undefined;
       adEffChartRef.update();
     }
   }
