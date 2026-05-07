@@ -27,14 +27,38 @@ try:
 except:
     config = {}
 
-# ── manual.json 읽기 (매달 수동 업데이트)
-try:
-    with open('data/manual.json', encoding='utf-8') as f:
-        manual = json.load(f)
-except:
-    manual = {}
+# ── 월별 폴더 감지 (data/YYYY-MM/ 형태)
+import os, glob
+month_folders = sorted([
+    d for d in glob.glob('data/????-??')
+    if os.path.isdir(d) and re.match(r'data/\d{4}-\d{2}$', d)
+])
+print(f"감지된 월별 폴더: {month_folders}")
 
-last_updated    = manual.get('날짜', '2026-04-29')
+# ── 가장 최신 월 폴더 = 현재 월 기준
+latest_folder = month_folders[-1] if month_folders else 'data'
+print(f"현재 월 폴더: {latest_folder}")
+
+# ── manual.json 읽기 (현재 월 폴더 우선, 없으면 data/ 루트)
+manual = {}
+for manual_path in [f'{latest_folder}/manual.json', 'data/manual.json']:
+    try:
+        with open(manual_path, encoding='utf-8') as f:
+            manual = json.load(f)
+        print(f"manual.json 읽기: {manual_path}")
+        break
+    except:
+        pass
+
+# 날짜: manual.json 우선, 없으면 폴더명에서 추출
+if manual.get('날짜'):
+    last_updated = manual['날짜']
+elif latest_folder != 'data':
+    folder_ym = latest_folder.replace('data/', '')  # '2026-05'
+    last_updated = folder_ym + '-01'
+else:
+    last_updated = '2026-04-30'
+print(f"last_updated: {last_updated}")
 weekly_visitors = manual.get('주차별_방문자수', [None, None, None, None])
 ad_costs_raw    = manual.get('광고비_만원', {})
 ad_costs        = {
@@ -138,14 +162,20 @@ structure = [
 totals = {cat+'|'+row: {'v':0,'ft':0,'ac':0,'po':0,'su':0} for cat,rows in structure for row in rows}
 
 # ── CSV 파싱
-for row in list(csv.reader(io.StringIO(read_euckr('data/visitors.csv'))))[1:]:
+vis_path = f'{latest_folder}/visitors.csv'
+if not os.path.exists(vis_path): vis_path = 'data/visitors.csv'
+print(f"visitors: {vis_path}")
+for row in list(csv.reader(io.StringIO(read_euckr(vis_path))))[1:]:
     if len(row) < 4: continue
     try: n = int(row[3].strip())
     except: continue
     r = map_visitor(row[0],row[1],row[2])
     if r and r[0]+'|'+r[1] in totals: totals[r[0]+'|'+r[1]]['v'] += n
 
-for row in list(csv.reader(io.StringIO(read_euckr('data/events.csv'))))[1:]:
+ev_path = f'{latest_folder}/events.csv'
+if not os.path.exists(ev_path): ev_path = 'data/events.csv'
+print(f"events: {ev_path}")
+for row in list(csv.reader(io.StringIO(read_euckr(ev_path))))[1:]:
     if len(row) < 4: continue
     try: n = int(row[3].strip())
     except: continue
@@ -160,7 +190,10 @@ all_month_paid = {}
 week_mb_data   = {1:0, 2:0, 3:0, 4:0}
 
 try:
-    wb = load_workbook('data/metabase.xlsx', read_only=True, data_only=True)
+    mb_path = f'{latest_folder}/metabase.xlsx'
+    if not os.path.exists(mb_path): mb_path = 'data/metabase.xlsx'
+    print(f"metabase: {mb_path}")
+    wb = load_workbook(mb_path, read_only=True, data_only=True)
     ws = wb.active
     rows_mb = list(ws.iter_rows(values_only=True))
     headers = [str(h).strip() if h else '' for h in rows_mb[0]]
@@ -484,9 +517,15 @@ c = re.sub('id="lastUpdatedLabel"[^>]*>[^<]*<', 'id="lastUpdatedLabel" class="te
 
 # ── 월별 탭 HTML 생성
 def make_tab_html(months_data, cur_key):
-    # 현재 월 기준 최근 6개월만 탭으로 표시 (1~3월 등 오래된 탭 제외)
+    # 월별 폴더 기반으로 탭 생성 (폴더가 있는 월 + 현재 월)
+    folder_keys = set(
+        'data/' in d and d.replace('data/','') or d
+        for d in glob.glob('data/????-??')
+        if os.path.isdir(d)
+    )
+    all_keys = (set(months_data.keys()) | folder_keys | {cur_key})
+    # 현재 월 기준 최근 6개월만 표시
     cur_yr, cur_mo = int(cur_key[:4]), int(cur_key[5:])
-    all_keys = set(months_data.keys()) | {cur_key}
     sorted_keys = sorted([
         k for k in all_keys
         if (cur_yr - int(k[:4])) * 12 + (cur_mo - int(k[5:])) <= 5
