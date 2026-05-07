@@ -122,6 +122,33 @@
         0,
         0,
         0
+      ],
+      "monthlyLabels": [
+        "1월"
+      ],
+      "monthlyV": [
+        5046
+      ],
+      "monthlyGa4": [
+        317
+      ],
+      "monthlyMb": [
+        326
+      ],
+      "monthlyGa4Cvr": [
+        6.28
+      ],
+      "monthlyMbCvr": [
+        6.46
+      ],
+      "monthlyPaid": [
+        37
+      ],
+      "monthlyPaidMb": [
+        326
+      ],
+      "monthlyPaidR": [
+        11.3
       ]
     },
     "2026-02": {
@@ -240,6 +267,42 @@
         0,
         0,
         0
+      ],
+      "monthlyLabels": [
+        "1월",
+        "2월"
+      ],
+      "monthlyV": [
+        5046,
+        4687
+      ],
+      "monthlyGa4": [
+        317,
+        222
+      ],
+      "monthlyMb": [
+        326,
+        245
+      ],
+      "monthlyGa4Cvr": [
+        6.28,
+        4.74
+      ],
+      "monthlyMbCvr": [
+        6.46,
+        5.23
+      ],
+      "monthlyPaid": [
+        37,
+        23
+      ],
+      "monthlyPaidMb": [
+        326,
+        245
+      ],
+      "monthlyPaidR": [
+        11.3,
+        9.4
       ]
     },
     "2026-03": {
@@ -358,6 +421,51 @@
         0,
         0,
         0
+      ],
+      "monthlyLabels": [
+        "1월",
+        "2월",
+        "3월"
+      ],
+      "monthlyV": [
+        5046,
+        4687,
+        4532
+      ],
+      "monthlyGa4": [
+        317,
+        222,
+        153
+      ],
+      "monthlyMb": [
+        326,
+        245,
+        198
+      ],
+      "monthlyGa4Cvr": [
+        6.28,
+        4.74,
+        3.38
+      ],
+      "monthlyMbCvr": [
+        6.46,
+        5.23,
+        4.37
+      ],
+      "monthlyPaid": [
+        37,
+        23,
+        31
+      ],
+      "monthlyPaidMb": [
+        326,
+        245,
+        198
+      ],
+      "monthlyPaidR": [
+        11.3,
+        9.4,
+        15.7
       ]
     },
     "2026-04": {
@@ -678,6 +786,60 @@
         110,
         145,
         188
+      ],
+      "monthlyLabels": [
+        "1월",
+        "2월",
+        "3월",
+        "4월"
+      ],
+      "monthlyV": [
+        5046,
+        4687,
+        4532,
+        5202
+      ],
+      "monthlyGa4": [
+        317,
+        222,
+        153,
+        188
+      ],
+      "monthlyMb": [
+        326,
+        245,
+        198,
+        287
+      ],
+      "monthlyGa4Cvr": [
+        6.28,
+        4.74,
+        3.38,
+        3.61
+      ],
+      "monthlyMbCvr": [
+        6.46,
+        5.23,
+        4.37,
+        5.52
+      ],
+      "monthlyPaid": [
+        37,
+        23,
+        31,
+        8
+      ],
+      "monthlyPaidMb": [
+        326,
+        245,
+        198,
+        287
+      ],
+      "monthlyPaidR": [
+        11.3,
+        9.4,
+        15.7,
+        2.8
       ]
     },
     "2026-05": {
