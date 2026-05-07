@@ -484,18 +484,16 @@ c = re.sub('id="lastUpdatedLabel"[^>]*>[^<]*<', 'id="lastUpdatedLabel" class="te
 
 # ── 월별 탭 HTML 생성
 def make_tab_html(months_data, cur_key):
-    # 월별 폴더 기준으로 탭 생성 (현재 월 기준 최근 6개월만)
+    # 월별 폴더가 존재하는 월만 탭으로 표시
     import glob as _glob, os as _os
     folder_keys = set(
         d.replace('data/', '') for d in _glob.glob('data/????-??')
         if _os.path.isdir(d)
     )
-    cur_yr, cur_mo = int(cur_key[:4]), int(cur_key[5:])
-    all_keys = (set(months_data.keys()) | folder_keys | {cur_key})
-    sorted_keys = sorted([
-        k for k in all_keys
-        if (cur_yr - int(k[:4])) * 12 + (cur_mo - int(k[5:])) <= 5
-    ])
+    # 폴더가 없으면 현재 월만 탭으로
+    if not folder_keys:
+        folder_keys = {cur_key}
+    sorted_keys = sorted(folder_keys)
 
     mo_names = {1:'1월',2:'2월',3:'3월',4:'4월',5:'5월',6:'6월',
                 7:'7월',8:'8월',9:'9월',10:'10월',11:'11월',12:'12월'}
