@@ -335,11 +335,21 @@ def get_prev_months(cur_key, n=3):
         result.insert(0, f'{yr}-{mo:02d}')
     return result
 
-prev_keys = get_prev_months(cur_month_key, 3)
+# 1월(4월)부터 현재 월 직전까지 전부 포함
+_start_key = '2026-01'  # 리포트 시작 월 (1월부터 누적)
+_yr_s, _mo_s = int(_start_key[:4]), int(_start_key[5:])
+_yr_e, _mo_e = int(cur_month_key[:4]), int(cur_month_key[5:])
+prev_keys = []
+_yr, _mo = _yr_s, _mo_s
+while (_yr, _mo) < (_yr_e, _mo_e):
+    prev_keys.append(f'{_yr}-{_mo:02d}')
+    _mo += 1
+    if _mo > 12: _mo = 1; _yr += 1
+
 month_labels_list = []
 for k in prev_keys:
-    mo = int(k[5:])
-    month_labels_list.append(f'{mo}월')
+    mo_label = int(k[5:])
+    month_labels_list.append(f'{mo_label}월')
 month_labels_list.append(f'{report_month}월')
 
 # 채널 비중 추이 데이터 (이전 월은 저장된 데이터에서)
