@@ -27,14 +27,36 @@ try:
 except:
     config = {}
 
-# ── manual.json 읽기 (매달 수동 업데이트)
-try:
-    with open('data/manual.json', encoding='utf-8') as f:
-        manual = json.load(f)
-except:
-    manual = {}
+# ── 월별 폴더 감지 (data/YYYY-MM/ 형태) → 최신 폴더가 현재 월
+import os as _os, glob as _glob
+_month_folders = sorted([
+    d for d in _glob.glob('data/????-??')
+    if _os.path.isdir(d)
+])
+_latest_folder = _month_folders[-1] if _month_folders else 'data'
+print(f"감지된 월별 폴더: {_month_folders}")
+print(f"현재 월 폴더: {_latest_folder}")
 
-last_updated    = manual.get('날짜', '2026-04-29')
+# ── manual.json 읽기 (현재 월 폴더 우선, 없으면 data/ 루트)
+manual = {}
+for _mp in [f'{_latest_folder}/manual.json', 'data/manual.json']:
+    try:
+        with open(_mp, encoding='utf-8') as f:
+            manual = json.load(f)
+        print(f"manual.json: {_mp}")
+        break
+    except:
+        pass
+
+# 날짜: manual.json 우선, 없으면 폴더명에서 추출
+if manual.get('날짜'):
+    last_updated = manual['날짜']
+elif _latest_folder != 'data':
+    _ym = _latest_folder.replace('data/', '')
+    last_updated = _ym + '-01'
+else:
+    last_updated = '2026-04-30'
+print(f"last_updated: {last_updated}")
 weekly_visitors = manual.get('주차별_방문자수', [None, None, None, None])
 ad_costs_raw    = manual.get('광고비_만원', {})
 ad_costs        = {
@@ -138,14 +160,20 @@ structure = [
 totals = {cat+'|'+row: {'v':0,'ft':0,'ac':0,'po':0,'su':0} for cat,rows in structure for row in rows}
 
 # ── CSV 파싱
-for row in list(csv.reader(io.StringIO(read_euckr('data/visitors.csv'))))[1:]:
+_vis_path = f'{_latest_folder}/visitors.csv'
+if not _os.path.exists(_vis_path): _vis_path = 'data/visitors.csv'
+print(f"visitors: {_vis_path}")
+for row in list(csv.reader(io.StringIO(read_euckr(_vis_path))))[1:]:
     if len(row) < 4: continue
     try: n = int(row[3].strip())
     except: continue
     r = map_visitor(row[0],row[1],row[2])
     if r and r[0]+'|'+r[1] in totals: totals[r[0]+'|'+r[1]]['v'] += n
 
-for row in list(csv.reader(io.StringIO(read_euckr('data/events.csv'))))[1:]:
+_ev_path = f'{_latest_folder}/events.csv'
+if not _os.path.exists(_ev_path): _ev_path = 'data/events.csv'
+print(f"events: {_ev_path}")
+for row in list(csv.reader(io.StringIO(read_euckr(_ev_path))))[1:]:
     if len(row) < 4: continue
     try: n = int(row[3].strip())
     except: continue
@@ -160,7 +188,10 @@ all_month_paid = {}
 week_mb_data   = {1:0, 2:0, 3:0, 4:0}
 
 try:
-    wb = load_workbook('data/metabase.xlsx', read_only=True, data_only=True)
+    _mb_path = f'{_latest_folder}/metabase.xlsx'
+    if not _os.path.exists(_mb_path): _mb_path = 'data/metabase.xlsx'
+    print(f"metabase: {_mb_path}")
+    wb = load_workbook(_mb_path, read_only=True, data_only=True)
     ws = wb.active
     rows_mb = list(ws.iter_rows(values_only=True))
     headers = [str(h).strip() if h else '' for h in rows_mb[0]]
