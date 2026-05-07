@@ -445,6 +445,30 @@ months_data[cur_month_key] = {
     'totalPo':      total_po,
     'ga4Cumulative': new_cum,
 }
+# 이전 월 데이터에 monthlyLabels 없으면 채워넣기
+for _prev_k in prev_keys:
+    if _prev_k in months_data and 'monthlyLabels' not in months_data[_prev_k]:
+        # 해당 월까지의 누적 데이터 계산
+        _pk_idx = prev_keys.index(_prev_k)
+        _prev_labels = month_labels_list[:_pk_idx+1]
+        _prev_v_data   = monthly_v_list[:_pk_idx+1]
+        _prev_ga4_data = monthly_ga4_list[:_pk_idx+1]
+        _prev_mb_data  = monthly_mb_list[:_pk_idx+1]
+        _prev_ga4cvr   = monthly_ga4_cvr_list[:_pk_idx+1]
+        _prev_mbcvr    = monthly_mb_cvr_list[:_pk_idx+1]
+        _prev_paid     = monthly_paid_list[:_pk_idx+1]
+        _prev_paidmb   = monthly_paid_mb_list[:_pk_idx+1]
+        _prev_paidr    = monthly_paid_r_list[:_pk_idx+1]
+        months_data[_prev_k]['monthlyLabels'] = _prev_labels
+        months_data[_prev_k]['monthlyV']      = _prev_v_data
+        months_data[_prev_k]['monthlyGa4']    = _prev_ga4_data
+        months_data[_prev_k]['monthlyMb']     = _prev_mb_data
+        months_data[_prev_k]['monthlyGa4Cvr'] = _prev_ga4cvr
+        months_data[_prev_k]['monthlyMbCvr']  = _prev_mbcvr
+        months_data[_prev_k]['monthlyPaid']   = _prev_paid
+        months_data[_prev_k]['monthlyPaidMb'] = _prev_paidmb
+        months_data[_prev_k]['monthlyPaidR']  = _prev_paidr
+
 # config.json에는 자동 관리 항목만 저장 (manual.json 항목 제외)
 save_config = {
     'ga4Cumulative': new_cum,
