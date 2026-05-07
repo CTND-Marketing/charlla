@@ -404,6 +404,17 @@ paid_cur = all_month_paid.get(cur_month_key, 0)
 monthly_paid_r_list.append(round(paid_cur/mb_cur*100, 1) if mb_cur else 0)
 
 # ── 현재 월 데이터 months에 저장
+# 현재 월까지의 누적 차트 데이터 계산
+_monthly_v_cur    = monthly_v_list    + [total_v]
+_monthly_ga4_cur  = monthly_ga4_list  + [total_su]
+_monthly_mb_cur   = monthly_mb_list   + [mb_cur]
+_monthly_ga4cvr_cur = monthly_ga4_cvr_list + [ga4_cvr]
+_monthly_mbcvr_cur  = monthly_mb_cvr_list  + [mb_cvr]
+_monthly_paid_cur   = monthly_paid_list    + [paid_cur]
+_monthly_paidmb_cur = monthly_paid_mb_list + [mb_cur]
+_monthly_paidr_cur  = monthly_paid_r_list  + [round(paid_cur/mb_cur*100,1) if mb_cur else 0]
+_month_labels_cur   = month_labels_list
+
 months_data[cur_month_key] = {
     'lastUpdated':  last_updated,
     'totalV':       total_v,
@@ -419,6 +430,15 @@ months_data[cur_month_key] = {
     'weekMb':       week_mb,
     'channels':     ch_data,
     'adEff':        [{'name':d['name'],'v':d['v'],'su':d['su'],'cost':d['cost'],'color':d['color']} for d in adEff],
+    'monthlyLabels': _month_labels_cur,
+    'monthlyV':      _monthly_v_cur,
+    'monthlyGa4':    _monthly_ga4_cur,
+    'monthlyMb':     _monthly_mb_cur,
+    'monthlyGa4Cvr': _monthly_ga4cvr_cur,
+    'monthlyMbCvr':  _monthly_mbcvr_cur,
+    'monthlyPaid':   _monthly_paid_cur,
+    'monthlyPaidMb': _monthly_paidmb_cur,
+    'monthlyPaidR':  _monthly_paidr_cur,
     'rawRows':      raw_rows,
     'totalFt':      total_ft,
     'totalAc':      total_ac,
@@ -602,6 +622,33 @@ function switchMonth(key) {{
     cv.data.datasets[0].borderColor = cvrS2.map(function(x){{return x.color;}});
     cvrSorted.length=0; cvrS2.forEach(function(x){{x.cvr=x.v?+(x.su/x.v*100).toFixed(1):0; cvrSorted.push(x);}});
     cv.update();
+  }}
+
+  // 월별 누적 차트 업데이트 (해당 월까지의 데이터만)
+  if (d.monthlyLabels) {{
+    if (window.monthlyTopChartRef) {{
+      var mt = window.monthlyTopChartRef;
+      mt.data.labels = d.monthlyLabels;
+      mt.data.datasets[0].data = d.monthlyV || [];
+      mt.data.datasets[1].data = d.monthlyMb || [];
+      mt.data.datasets[2].data = d.monthlyGa4 || [];
+      mt.update();
+    }}
+    if (window.cvrTrendChartRef) {{
+      var ct = window.cvrTrendChartRef;
+      ct.data.labels = d.monthlyLabels;
+      ct.data.datasets[0].data = d.monthlyMbCvr || [];
+      ct.data.datasets[1].data = d.monthlyGa4Cvr || [];
+      ct.update();
+    }}
+    if (window.paidConvChartRef) {{
+      var pc = window.paidConvChartRef;
+      pc.data.labels = d.monthlyLabels;
+      pc.data.datasets[0].data = d.monthlyPaidMb || [];
+      pc.data.datasets[1].data = d.monthlyPaid || [];
+      pc.data.datasets[2].data = d.monthlyPaidR || [];
+      pc.update();
+    }}
   }}
 
   // 광고 KPI 카드
