@@ -316,8 +316,10 @@ w2 = wv[1] if wv[1] is not None else 0
 w3 = wv[2] if wv[2] is not None else 0
 w4 = wv[3]
 week_v = [w1, w2, w3, w4]
-week_mb = [week_mb_data[1], week_mb_data[2], week_mb_data[3],
-           week_mb_data[4] if week_mb_data[4] > 0 else None]
+week_mb = [
+    week_mb_data[i] if i < cur_week else None
+    for i in range(1, 5)
+]
 
 ranges_label = get_week_ranges(report_year, report_month)
 weekly_labels = [
@@ -386,17 +388,12 @@ for k in prev_keys:
     sv = saved.get('totalV', 0)
     monthly_v_list.append(sv)
     monthly_ga4_list.append(saved.get('totalSu', 0))
-    _mb_su_k2 = all_month_su.get(k, saved.get('mbSu', 0))
-    monthly_mb_list.append(_mb_su_k2)
+    monthly_mb_list.append(saved.get('mbSu', 0))
     monthly_ga4_cvr_list.append(saved.get('ga4Cvr', 0))
-    sv2 = saved.get('totalV', 0)
-    monthly_mb_cvr_list.append(round(_mb_su_k2/sv2*100, 2) if sv2 else saved.get('mbCvr', 0))
-    # 유료전환: metabase 직접 집계 우선, 없으면 config 값
-    _paid_su_k = all_month_paid.get(k, saved.get('paidSu', 0))
-    _mb_su_k   = all_month_su.get(k, saved.get('mbSu', 0))
-    monthly_paid_list.append(_paid_su_k)
-    monthly_paid_mb_list.append(_mb_su_k)
-    monthly_paid_r_list.append(round(_paid_su_k/_mb_su_k*100, 1) if _mb_su_k else 0)
+    monthly_mb_cvr_list.append(saved.get('mbCvr', 0))
+    monthly_paid_list.append(saved.get('paidSu', 0))
+    monthly_paid_mb_list.append(saved.get('mbSu', 0))
+    monthly_paid_r_list.append(saved.get('paidRate', 0))
 
 monthly_v_list.append(total_v)
 monthly_ga4_list.append(total_su)
@@ -608,9 +605,7 @@ var _curMonth = '{cur_key}';
 var _monthNames = {json.dumps({k: mo_names.get(int(k[5:]),k[5:]) for k in sorted_keys}, ensure_ascii=False)};
 
 function switchMonth(key) {{
-  // 현재 활성 탭과 같으면 무시 (단, _curMonth가 아닌 실제 활성 탭 기준)
-  var activeBtn = document.querySelector('.tab-btn.border-b-2');
-  if (activeBtn && activeBtn.dataset.month === key) return;
+  if (key === _curMonth) return;
   var d = _allMonths[key];
   if (!d) return;
 
@@ -663,6 +658,7 @@ function switchMonth(key) {{
       mt.data.datasets[0].data = d.monthlyV || [];
       mt.data.datasets[1].data = d.monthlyMb || [];
       mt.data.datasets[2].data = d.monthlyGa4 || [];
+      mt.data.datasets[3].data = (d.monthlyLabels||[]).map(function(){{return 180;}});
       mt.update();
     }}
     if (window.cvrTrendChartRef) {{
@@ -670,6 +666,7 @@ function switchMonth(key) {{
       ct.data.labels = d.monthlyLabels;
       ct.data.datasets[0].data = d.monthlyMbCvr || [];
       ct.data.datasets[1].data = d.monthlyGa4Cvr || [];
+      ct.data.datasets[2].data = (d.monthlyLabels||[]).map(function(){{return 4;}});
       ct.update();
     }}
     if (window.paidConvChartRef) {{
@@ -760,17 +757,19 @@ maxCost    = max(adEff_cost) if adEff_cost else 1
 
 inits  = 'window.addEventListener("load",function(){\n'
 inits += 'if(window.weeklyAprilChartRef){var w=window.weeklyAprilChartRef;w.data.labels='+json.dumps(weekly_labels)+';w.data.datasets[0].data='+json.dumps(week_v)+';w.data.datasets[1].data='+json.dumps(week_mb)+';w.data.datasets[2].data='+json.dumps(week_ga4)+';w.update();}\n'
-inits += 'if(window.monthlyTopChartRef){var mt=window.monthlyTopChartRef;mt.data.labels='+json.dumps(month_labels_list)+';mt.data.datasets[0].data='+json.dumps(monthly_v_list)+';mt.data.datasets[1].data='+json.dumps(monthly_mb_list)+';mt.data.datasets[2].data='+json.dumps(monthly_ga4_list)+';mt.update();}\n'
-inits += 'if(window.cvrTrendChartRef){var ct=window.cvrTrendChartRef;ct.data.labels='+json.dumps(month_labels_list)+';ct.data.datasets[0].data='+json.dumps(monthly_mb_cvr_list)+';ct.data.datasets[1].data='+json.dumps(monthly_ga4_cvr_list)+';ct.update();}\n'
+_target_su = [180] * len(month_labels_list)
+inits += 'if(window.monthlyTopChartRef){var mt=window.monthlyTopChartRef;mt.data.labels='+json.dumps(month_labels_list)+';mt.data.datasets[0].data='+json.dumps(monthly_v_list)+';mt.data.datasets[1].data='+json.dumps(monthly_mb_list)+';mt.data.datasets[2].data='+json.dumps(monthly_ga4_list)+';mt.data.datasets[3].data='+json.dumps(_target_su)+';mt.update();}\n'
+_target_cvr = [4] * len(month_labels_list)
+inits += 'if(window.cvrTrendChartRef){var ct=window.cvrTrendChartRef;ct.data.labels='+json.dumps(month_labels_list)+';ct.data.datasets[0].data='+json.dumps(monthly_mb_cvr_list)+';ct.data.datasets[1].data='+json.dumps(monthly_ga4_cvr_list)+';ct.data.datasets[2].data='+json.dumps(_target_cvr)+';ct.update();}\n'
 inits += 'if(window.paidConvChartRef){var pc=window.paidConvChartRef;pc.data.labels='+json.dumps(month_labels_list)+';pc.data.datasets[0].data='+json.dumps(monthly_paid_mb_list)+';pc.data.datasets[1].data='+json.dumps(monthly_paid_list)+';pc.data.datasets[2].data='+json.dumps(monthly_paid_r_list)+';pc.update();}\n'
 inits += 'if(window.cvrChartRef){var cv=window.cvrChartRef;cv.data.labels='+json.dumps([d['name'] for d in cvrS])+';cv.data.datasets[0].data='+json.dumps([round(d['su']/d['v']*100,1) if d['v'] else 0 for d in cvrS])+';cv.data.datasets[0].backgroundColor='+json.dumps([d['color']+'bb' for d in cvrS])+';cv.data.datasets[0].borderColor='+json.dumps([d['color'] for d in cvrS])+';cvrSorted.length=0;'+json.dumps(cvrS)+'.forEach(function(d){cvrSorted.push(d);});cv.update();}\n'
 for i in range(len(ch_data)):
     inits += 'if(window.channelTrendChartRef){window.channelTrendChartRef.data.labels='+json.dumps(month_labels_list)+';window.channelTrendChartRef.data.datasets['+str(i)+'].data='+json.dumps(ch_trend_pct[i])+';window.channelTrendChartRef.data.datasets['+str(i)+'].su='+json.dumps(ch_trend_abs[i])+';}\n'
 inits += 'if(window.channelTrendChartRef){window.channelTrendChartRef.update();}\n'
-inits += 'if(typeof adCpaChartRef!=="undefined"&&adCpaChartRef){adCpaChartRef.data.datasets[0].data='+json.dumps(adEff_cpa)+';adCpaChartRef.options.scales.y.max=undefined;adCpaChartRef.update();}\n'
+inits += 'if(typeof adCpaChartRef!=="undefined"&&adCpaChartRef){adCpaChartRef.data.datasets[0].data='+json.dumps(adEff_cpa)+';adCpaChartRef.update();}\n'
 inits += 'if(typeof adEffChartRef!=="undefined"&&adEffChartRef){'+\
     ''.join(['adEffChartRef.data.datasets['+str(i)+'].data=[{x:'+str(adEff_cvr_[i])+',y:'+str(round(adEff_cpa[i]/10000))+',r:'+str(max(8,round(adEff_cost[i]/maxCost*28)))+'}];' for i in range(len(adEff))])+\
-    'adEffChartRef.options.scales.y.max=undefined;adEffChartRef.options.scales.x.max=undefined;adEffChartRef.update();}\n'
+    'adEffChartRef.update();}\n'
 inits += '});\n'
 
 c = c.rstrip()
