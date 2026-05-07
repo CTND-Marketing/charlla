@@ -13,8 +13,8 @@
       "ga4Cvr": 6.28,
       "mbSu": 326,
       "mbCvr": 6.46,
-      "paidSu": 37,
-      "paidRate": 11.3,
+      "paidSu": 27,
+      "paidRate": 8.3,
       "weekV": [
         null,
         null,
@@ -85,7 +85,7 @@
       ],
       "adEff": [
         {
-          "name": "Google\nKeyword",
+          "name": "Google\n검색광고",
           "v": 1223,
           "su": 52,
           "cost": 2500000,
@@ -131,8 +131,8 @@
       "ga4Cvr": 4.74,
       "mbSu": 245,
       "mbCvr": 5.23,
-      "paidSu": 23,
-      "paidRate": 9.4,
+      "paidSu": 22,
+      "paidRate": 9.0,
       "weekV": [
         null,
         null,
@@ -203,7 +203,7 @@
       ],
       "adEff": [
         {
-          "name": "Google\nKeyword",
+          "name": "Google\n검색광고",
           "v": 1100,
           "su": 45,
           "cost": 2500000,
@@ -321,7 +321,7 @@
       ],
       "adEff": [
         {
-          "name": "Google\nKeyword",
+          "name": "Google\n검색광고",
           "v": 1150,
           "su": 48,
           "cost": 2500000,
@@ -358,6 +358,124 @@
         0,
         0,
         0
+      ]
+    },
+    "2026-04": {
+      "lastUpdated": "2026-04-30",
+      "totalV": 5202,
+      "totalSu": 188,
+      "ga4Cvr": 3.61,
+      "mbSu": 287,
+      "mbCvr": 5.52,
+      "paidSu": 8,
+      "paidRate": 2.8,
+      "weekV": [
+        1710,
+        1532,
+        917,
+        731
+      ],
+      "weekGa4": [
+        61,
+        49,
+        35,
+        27
+      ],
+      "weekMb": [
+        77,
+        75,
+        65,
+        70
+      ],
+      "weekLabels": [
+        [
+          "4월 1주차",
+          "(4/1~4/8)"
+        ],
+        [
+          "4월 2주차",
+          "(4/9~4/15)"
+        ],
+        [
+          "4월 3주차",
+          "(4/16~4/22)"
+        ],
+        [
+          "4월 4주차",
+          "(4/23~4/30)"
+        ]
+      ],
+      "channels": [
+        {
+          "name": "검색/배너광고",
+          "v": 3301,
+          "su": 96,
+          "color": "#3b82f6"
+        },
+        {
+          "name": "직접 유입",
+          "v": 1053,
+          "su": 46,
+          "color": "#10b981"
+        },
+        {
+          "name": "카페24",
+          "v": 401,
+          "su": 26,
+          "color": "#f59e0b"
+        },
+        {
+          "name": "자연유입",
+          "v": 349,
+          "su": 17,
+          "color": "#06b6d4"
+        },
+        {
+          "name": "기타",
+          "v": 102,
+          "su": 3,
+          "color": "#cbd5e1"
+        }
+      ],
+      "adEff": [
+        {
+          "name": "Google\n검색광고",
+          "v": 1445,
+          "su": 75,
+          "cost": 2500000,
+          "color": "#3b82f6"
+        },
+        {
+          "name": "GDN",
+          "v": 1314,
+          "su": 7,
+          "cost": 1000000,
+          "color": "#7c3aed"
+        },
+        {
+          "name": "Naver\n검색광고",
+          "v": 542,
+          "su": 14,
+          "cost": 2100000,
+          "color": "#10b981"
+        },
+        {
+          "name": "카페24\n배너",
+          "v": 401,
+          "su": 26,
+          "cost": 3690000,
+          "color": "#f59e0b"
+        }
+      ],
+      "totalFt": 1526,
+      "totalAc": 815,
+      "totalPo": 680,
+      "rawRows": {},
+      "ga4Cumulative": [
+        61,
+        110,
+        145,
+        176
       ]
     }
   }
