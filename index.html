@@ -427,7 +427,7 @@
           <div><p class="text-sm text-gray-400 mb-0.5">가입율</p><p class="text-sm font-bold text-blue-500" id="kpi_cvr_google">3.17%</p></div>
         </div>
         <div class="border-t border-gray-100 pt-3 grid grid-cols-2 gap-1 text-center">
-          <div><p class="text-sm text-gray-400 mb-0.5">광고비</p><p class="text-sm font-bold text-gray-700" id="kpi_cost_google">250만</p></div>
+          <div><p class="text-sm text-gray-400 mb-0.5">광고비</p><p class="text-sm font-bold text-gray-700" id="kpi_cost_google">260만</p></div>
           <div><p class="text-sm text-gray-400 mb-0.5">CPA</p><p class="text-sm font-bold text-blue-500" id="kpi_cpa_google">65만</p></div>
         </div>
       </div>
@@ -439,7 +439,7 @@
           <div><p class="text-sm text-gray-400 mb-0.5">가입율</p><p class="text-sm font-bold text-violet-500" id="kpi_cvr_gdn">0.52%</p></div>
         </div>
         <div class="border-t border-gray-100 pt-3 grid grid-cols-2 gap-1 text-center">
-          <div><p class="text-sm text-gray-400 mb-0.5">광고비</p><p class="text-sm font-bold text-gray-700" id="kpi_cost_gdn">100만</p></div>
+          <div><p class="text-sm text-gray-400 mb-0.5">광고비</p><p class="text-sm font-bold text-gray-700" id="kpi_cost_gdn">160만</p></div>
           <div><p class="text-sm text-gray-400 mb-0.5">CPA</p><p class="text-sm font-bold text-violet-500" id="kpi_cpa_gdn">160만</p></div>
         </div>
       </div>
@@ -451,7 +451,7 @@
           <div><p class="text-sm text-gray-400 mb-0.5">가입율</p><p class="text-sm font-bold text-emerald-500" id="kpi_cvr_naver">0.0%</p></div>
         </div>
         <div class="border-t border-gray-100 pt-3 grid grid-cols-2 gap-1 text-center">
-          <div><p class="text-sm text-gray-400 mb-0.5">광고비</p><p class="text-sm font-bold text-gray-700" id="kpi_cost_naver">210만</p></div>
+          <div><p class="text-sm text-gray-400 mb-0.5">광고비</p><p class="text-sm font-bold text-gray-700" id="kpi_cost_naver">140만</p></div>
           <div><p class="text-sm text-gray-400 mb-0.5">CPA</p><p class="text-sm font-bold text-emerald-500" id="kpi_cpa_naver">0만</p></div>
         </div>
       </div>
@@ -463,7 +463,7 @@
           <div><p class="text-sm text-gray-400 mb-0.5">가입율</p><p class="text-sm font-bold text-amber-500" id="kpi_cvr_cafe24">5.75%</p></div>
         </div>
         <div class="border-t border-gray-100 pt-3 grid grid-cols-2 gap-1 text-center">
-          <div><p class="text-sm text-gray-400 mb-0.5">광고비</p><p class="text-sm font-bold text-gray-700" id="kpi_cost_cafe24">369만</p></div>
+          <div><p class="text-sm text-gray-400 mb-0.5">광고비</p><p class="text-sm font-bold text-gray-700" id="kpi_cost_cafe24">468만</p></div>
           <div><p class="text-sm text-gray-400 mb-0.5">CPA</p><p class="text-sm font-bold text-amber-500" id="kpi_cpa_cafe24">94만</p></div>
         </div>
       </div>
@@ -1860,10 +1860,12 @@ function switchMonth(key) {
       var k2 = adKeys[i];
       var cvr2 = ae.v ? (ae.su/ae.v*100).toFixed(2) : 0;
       var cpa2 = ae.su ? Math.round(ae.cost/ae.su/10000) : 0;
-      setEl('kpi_v_'+k2,   ae.v.toLocaleString());
-      setEl('kpi_su_'+k2,  ae.su.toLocaleString());
-      setEl('kpi_cvr_'+k2, cvr2+'%');
-      setEl('kpi_cpa_'+k2, cpa2+'만');
+      var cost2 = Math.round(ae.cost/10000);
+      setEl('kpi_v_'+k2,    ae.v.toLocaleString());
+      setEl('kpi_su_'+k2,   ae.su.toLocaleString());
+      setEl('kpi_cost_'+k2, cost2+'만');
+      setEl('kpi_cvr_'+k2,  cvr2+'%');
+      setEl('kpi_cpa_'+k2,  cpa2+'만');
     });
     if (typeof adCpaChartRef !== 'undefined' && adCpaChartRef) {
       adCpaChartRef.data.datasets[0].data = d.adEff.map(function(ae){return ae.su?Math.round(ae.cost/ae.su):0;});
