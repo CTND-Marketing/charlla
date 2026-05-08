@@ -483,31 +483,15 @@
 
   </div>
 
-  <!-- INSIGHTS -->
-  <div class="card p-8 mb-8">
-    <h3 class="text-lg font-bold text-gray-800 mb-6">주요 인사이트</h3>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      <div>
-        <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">검색/배너광고 독주</span>
-        <p class="text-base text-gray-600 mt-3 leading-relaxed">Paid Search 유입 <b>1,181명 (38.6%)</b>으로 단일 채널 최대. 무료체험 클릭의 85.9%를 견인하는 핵심 획득 채널.</p>
-      </div>
-      <div>
-        <span class="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-bold">가입 병목 구간</span>
-        <p class="text-base text-gray-600 mt-3 leading-relaxed">가입정책 동의(494명) → 회원가입(129명) 이탈 <b>73.9%</b>. 이 구간이 최대 병목으로 UX 개선이 필요합니다.</p>
-      </div>
-      <div>
-        <span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold">카페24 고효율</span>
-        <p class="text-base text-gray-600 mt-3 leading-relaxed">카페24 전환율 <b>7.9%</b>로 최상위. 유입 볼륨은 작지만 실제 전환 효율이 가장 높은 채널.</p>
-      </div>
-      <div>
-        <span class="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-bold">데이터 편차</span>
-        <p class="text-base text-gray-600 mt-3 leading-relaxed">GA4(129명) vs Metabase(160명) <b>31명 차이</b>. 실제 DB에 가까운 Metabase 기준으로 성과 판단을 권장합니다.</p>
-      </div>
-    </div>
-  </div>
 
-  <!-- RAW TABLE 누적 -->
-  <div class="card p-6 overflow-x-auto mb-6">
+
+  <!-- RAW TABLE -->
+  <div class="card p-6 mb-6">
+    <button onclick="toggleRawData()" class="flex items-center gap-2 w-full text-left" id="rawDataToggleBtn">
+      <h3 class="text-base font-bold text-gray-700">Raw Data</h3>
+      <svg id="rawDataChevron" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-400 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+    </button>
+    <div id="rawDataContent" class="hidden overflow-x-auto mt-4">
     <div class="flex items-center justify-between mb-1">
       <h3 class="text-base font-bold text-gray-700">Raw Data</h3>
     </div>
@@ -537,11 +521,25 @@
         </tr>
       </tfoot>
     </table>
+    </div>
   </div>
 
 
 </div>
 <script>
+
+function toggleRawData() {
+  var content = document.getElementById('rawDataContent');
+  var chevron = document.getElementById('rawDataChevron');
+  if (content.classList.contains('hidden')) {
+    content.classList.remove('hidden');
+    chevron.style.transform = 'rotate(180deg)';
+  } else {
+    content.classList.add('hidden');
+    chevron.style.transform = 'rotate(0deg)';
+  }
+}
+
 const COLOR_GA = '#7c3aed';
 const COLOR_MB = '#10b981';
 
