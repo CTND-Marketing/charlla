@@ -554,8 +554,6 @@ for i, k in enumerate(['google','gdn','naver','cafe24']):
     c = rep(c,'kpi_v_'+k,   str(v))
     # 가입수는 p 태그 textContent로 주입
     c = re.sub(r'id="kpi_su_' + k + r'">[^<]*</p>', 'id="kpi_su_' + k + '">' + str(su) + '</p>', c)
-    cost_man = round(adEff[i]['cost'] / 10000)
-    c = rep(c,'kpi_cost_'+k, str(cost_man)+'만')
     c = rep(c,'kpi_cvr_'+k, str(cvr_)+'%')
     c = rep(c,'kpi_cpa_'+k, str(cpa_)+'만')
 
@@ -607,12 +605,8 @@ var _curMonth = '{cur_key}';
 var _monthNames = {json.dumps({k: mo_names.get(int(k[5:]),k[5:]) for k in sorted_keys}, ensure_ascii=False)};
 
 function switchMonth(key) {{
-  // 현재 활성 탭과 같으면 무시
-  var _activeTab = document.querySelector('.tab-btn.border-b-2');
-  if (_activeTab && _activeTab.dataset.month === key) return;
-  var d = key === _curMonth ? null : _allMonths[key];
-  // 현재 월(5월) 탭으로 돌아오는 경우 페이지 리로드
-  if (key === _curMonth) {{ window.location.reload(); return; }}
+  if (key === _curMonth) return;
+  var d = _allMonths[key];
   if (!d) return;
 
   // 탭 UI 업데이트
@@ -640,7 +634,9 @@ function switchMonth(key) {{
     w.data.labels = wl;
     w.data.datasets[0].data = d.weekV || [null,null,null,null];
     w.data.datasets[1].data = d.weekMb || [null,null,null,null];
+    w.data.datasets[1].showLine = true;
     w.data.datasets[2].data = d.weekGa4 || [null,null,null,null];
+    w.data.datasets[2].showLine = true;
     w.update();
   }}
 
@@ -692,16 +688,13 @@ function switchMonth(key) {{
       var k2 = adKeys[i];
       var cvr2 = ae.v ? (ae.su/ae.v*100).toFixed(2) : 0;
       var cpa2 = ae.su ? Math.round(ae.cost/ae.su/10000) : 0;
-      var cost2 = Math.round(ae.cost/10000);
-      setEl('kpi_v_'+k2,    ae.v.toLocaleString());
-      setEl('kpi_su_'+k2,   ae.su.toLocaleString());
-      setEl('kpi_cost_'+k2, cost2+'만');
-      setEl('kpi_cvr_'+k2,  cvr2+'%');
-      setEl('kpi_cpa_'+k2,  cpa2+'만');
+      setEl('kpi_v_'+k2,   ae.v.toLocaleString());
+      setEl('kpi_su_'+k2,  ae.su.toLocaleString());
+      setEl('kpi_cvr_'+k2, cvr2+'%');
+      setEl('kpi_cpa_'+k2, cpa2+'만');
     }});
     if (typeof adCpaChartRef !== 'undefined' && adCpaChartRef) {{
       adCpaChartRef.data.datasets[0].data = d.adEff.map(function(ae){{return ae.su?Math.round(ae.cost/ae.su):0;}});
-      adCpaChartRef.options.scales.y.max = undefined;
       adCpaChartRef.update();
     }}
     if (typeof adEffChartRef !== 'undefined' && adEffChartRef) {{
@@ -711,8 +704,6 @@ function switchMonth(key) {{
         var cpa3 = ae.su?Math.round(ae.cost/ae.su/10000):0;
         adEffChartRef.data.datasets[i].data = [{{x:parseFloat(cvr3),y:cpa3,r:Math.max(8,Math.round(ae.cost/maxC2*28))}}];
       }});
-      adEffChartRef.options.scales.y.max = undefined;
-      adEffChartRef.options.scales.x.max = undefined;
       adEffChartRef.update();
     }}
   }}
@@ -777,10 +768,10 @@ inits += 'if(window.cvrChartRef){var cv=window.cvrChartRef;cv.data.labels='+json
 for i in range(len(ch_data)):
     inits += 'if(window.channelTrendChartRef){window.channelTrendChartRef.data.labels='+json.dumps(month_labels_list)+';window.channelTrendChartRef.data.datasets['+str(i)+'].data='+json.dumps(ch_trend_pct[i])+';window.channelTrendChartRef.data.datasets['+str(i)+'].su='+json.dumps(ch_trend_abs[i])+';}\n'
 inits += 'if(window.channelTrendChartRef){window.channelTrendChartRef.update();}\n'
-inits += 'if(typeof adCpaChartRef!=="undefined"&&adCpaChartRef){adCpaChartRef.data.datasets[0].data='+json.dumps(adEff_cpa)+';adCpaChartRef.options.scales.y.max=undefined;adCpaChartRef.update();}\n'
+inits += 'if(typeof adCpaChartRef!=="undefined"&&adCpaChartRef){adCpaChartRef.data.datasets[0].data='+json.dumps(adEff_cpa)+';adCpaChartRef.update();}\n'
 inits += 'if(typeof adEffChartRef!=="undefined"&&adEffChartRef){'+\
     ''.join(['adEffChartRef.data.datasets['+str(i)+'].data=[{x:'+str(adEff_cvr_[i])+',y:'+str(round(adEff_cpa[i]/10000))+',r:'+str(max(8,round(adEff_cost[i]/maxCost*28)))+'}];' for i in range(len(adEff))])+\
-    'adEffChartRef.options.scales.y.max=undefined;adEffChartRef.options.scales.x.max=undefined;adEffChartRef.update();}\n'
+    'adEffChartRef.update();}\n'
 inits += '});\n'
 
 c = c.rstrip()
