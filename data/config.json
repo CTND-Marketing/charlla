@@ -843,7 +843,7 @@
       ]
     },
     "2026-05": {
-      "lastUpdated": "2026-05-13",
+      "lastUpdated": "2026-05-14",
       "totalV": 2517,
       "totalSu": 104,
       "ga4Cvr": 4.13,
@@ -878,13 +878,13 @@
       "weekGa4": [
         104,
         0,
-        null,
+        0,
         null
       ],
       "weekMb": [
         24,
         115,
-        null,
+        5,
         null
       ],
       "channels": [
