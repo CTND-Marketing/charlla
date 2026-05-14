@@ -3,17 +3,20 @@ from openpyxl import load_workbook
 from datetime import datetime, date, timedelta
 
 def get_week_ranges(year, month):
-    """1주차: 1일~첫째주수요일, 이후 목~수 기준"""
+    """1주차: 1일~첫 수요일, 단 3일 이하면 다음 수요일까지 연장"""
     d = date(year, month, 1)
-    while d.weekday() != 3:  # 첫 목요일
+    while d.weekday() != 2:  # 첫 수요일
         d += timedelta(days=1)
-    first_wed_end = d.day + 6  # 1주차 끝 (수요일)
+    first_wed = d.day
     last_day = calendar.monthrange(year, month)[1]
+    # 1주차가 3일 이하면 다음 수요일까지 연장
+    if first_wed <= 3:
+        first_wed += 7
     return [
-        (1,                    min(first_wed_end, last_day)),
-        (first_wed_end+1,      min(first_wed_end+7,  last_day)),
-        (first_wed_end+8,      min(first_wed_end+14, last_day)),
-        (first_wed_end+15,     last_day),
+        (1,              min(first_wed,    last_day)),
+        (first_wed+1,    min(first_wed+7,  last_day)),
+        (first_wed+8,    min(first_wed+14, last_day)),
+        (first_wed+15,   last_day),
     ]
 
 def read_euckr(path):
