@@ -80,6 +80,7 @@ if ga4_cumulative is None:
     ga4_cumulative = config.get('ga4Cumulative', [0, 0, 0, 0])
 # None 값 처리
 ga4_cumulative = [v if v is not None else 0 for v in ga4_cumulative]
+print(f"ga4_cumulative: {ga4_cumulative}")
 months_data     = config.get('months', {})  # 월별 저장 데이터
 
 try:
