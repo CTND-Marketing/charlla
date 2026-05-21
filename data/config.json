@@ -1,8 +1,8 @@
 {
   "ga4Cumulative": [
     13,
+    91,
     168,
-    0,
     0
   ],
   "months": {
@@ -843,7 +843,7 @@
       ]
     },
     "2026-05": {
-      "lastUpdated": "2026-05-13",
+      "lastUpdated": "2026-05-20",
       "totalV": 3327,
       "totalSu": 168,
       "ga4Cvr": 5.05,
@@ -872,19 +872,19 @@
       "weekV": [
         702,
         1925,
-        0,
+        1007,
         0
       ],
       "weekGa4": [
         13,
-        155,
-        null,
+        78,
+        77,
         null
       ],
       "weekMb": [
         24,
         115,
-        null,
+        67,
         null
       ],
       "channels": [
@@ -1228,8 +1228,8 @@
       "totalPo": 492,
       "ga4Cumulative": [
         13,
+        91,
         168,
-        0,
         0
       ]
     }
