@@ -1774,7 +1774,11 @@ var _curMonth = '2026-05';
 var _monthNames = {"2026-04": "4월", "2026-05": "5월"};
 
 function switchMonth(key) {
-  if (key === _curMonth) return;
+  // 현재 활성 탭과 같으면 무시
+  var _activeTab = document.querySelector('.tab-btn.border-b-2');
+  if (_activeTab && _activeTab.dataset.month === key) return;
+  // 현재 월(최신) 탭으로 돌아오면 페이지 리로드
+  if (key === _curMonth) { window.location.reload(); return; }
   var d = _allMonths[key];
   if (!d) return;
 
