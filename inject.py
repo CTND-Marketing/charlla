@@ -618,7 +618,11 @@ var _curMonth = '{cur_key}';
 var _monthNames = {json.dumps({k: mo_names.get(int(k[5:]),k[5:]) for k in sorted_keys}, ensure_ascii=False)};
 
 function switchMonth(key) {{
-  if (key === _curMonth) return;
+  // 현재 활성 탭과 같으면 무시
+  var _activeTab = document.querySelector('.tab-btn.border-b-2');
+  if (_activeTab && _activeTab.dataset.month === key) return;
+  // 현재 월(최신) 탭으로 돌아오면 페이지 리로드
+  if (key === _curMonth) {{ window.location.reload(); return; }}
   var d = _allMonths[key];
   if (!d) return;
 
