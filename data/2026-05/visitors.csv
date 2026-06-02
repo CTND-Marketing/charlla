@@ -1,40 +1,42 @@
 구분,소스,매체,사용자수
-Direct,(direct) , (none),1489
-Paid Search,google , cpc,812
-Display,google , cpc,764
-Paid Search,naver , cpc,135
-Organic Search,google , organic,129
+Direct,(direct) , (none),1722
+Paid Search,google , cpc,816
+Display,google , cpc,765
+Paid Search,naver , cpc,136
+Organic Search,google , organic,134
 Cross-network,(data not available),,46
 Unassigned,BS , brand_search_pc,40
 Display,viimstudio , banner,14
 Organic Search,naver , organic,14
 Display,gdn , banner,13
+Referral,pkh8585.cafe24.com , referral,11
 Referral,charllasample.cafe24.com , referral,10
-Referral,pkh8585.cafe24.com , referral,10
+Referral,app.shop-pro.jp , referral,9
+Referral,qhdrus123.cafe24.com , referral,9
 Organic Search,m.search.naver.com , referral,8
+Referral,ageatlabs.cafe24.com , referral,8
 Unassigned,cafe24 , floating_banner,8
 Organic Search,bing , organic,7
-Referral,app.shop-pro.jp , referral,7
-Referral,qhdrus123.cafe24.com , referral,7
+Referral,legodtofficial.cafe24.com , referral,7
 Paid Video,google , cpc,6
-Referral,ageatlabs.cafe24.com , referral,6
 Referral,idfmall.cafe24.com , referral,6
 Organic Shopping,stibee , ebook,5
+Referral,eb970604.cafe24.com , referral,5
 Referral,uzin2026.cafe24.com , referral,5
 Referral,apps.godo.co.kr , referral,4
+Referral,br.nate.com , referral,4
+Referral,charlla.io , referral,4
 Referral,chatgpt.com , referral,4
-Referral,eb970604.cafe24.com , referral,4
+Referral,eve014.cafe24.com , referral,4
 Referral,jwg-web.tistory.com , referral,4
-Referral,legodtofficial.cafe24.com , referral,4
 Paid Shopping,naver , cpc,3
 Referral,anne2173.cafe24.com , referral,3
 Referral,api.shop-pro.jp , referral,3
 Referral,betterlab1.cafe24.com , referral,3
 Referral,blog.catenoid.net , referral,3
-Referral,br.nate.com , referral,3
 Referral,celora.cafe24.com , referral,3
-Referral,charlla.io , referral,3
 Referral,dannkw.cafe24.com , referral,3
+Referral,drhager.cafe24.com , referral,3
 Referral,gustongue.cafe24.com , referral,3
 Referral,haneseoul82.cafe24.com , referral,3
 Referral,hjmszz.cafe24.com , referral,3
@@ -42,29 +44,32 @@ Referral,mangomgmp.cafe24.com , referral,3
 Referral,meliens.cafe24.com , referral,3
 Referral,moont2018.cafe24.com , referral,3
 Referral,nextsereme.cafe24.com , referral,3
+Referral,overthebrand.cafe24.com , referral,3
 Referral,ovlr01.cafe24.com , referral,3
 Referral,seasnoff.cafe24.com , referral,3
 Referral,syfnc23.cafe24.com , referral,3
 Referral,urbancarry.cafe24.com , referral,3
+Referral,volvikapparel.cafe24.com , referral,3
 Display,GFA , Banner,2
 Display,cafe24 , banner,2
 Organic Search,yahoo , organic,2
 Organic Social,blog.naver.com , referral,2
 Referral,accounts.google.com , referral,2
 Referral,apps.nhn-commerce.com , referral,2
+Referral,asas2855.cafe24.com , referral,2
 Referral,awesomehabi1029.cafe24.com , referral,2
 Referral,bluegrain.cafe24.com , referral,2
 Referral,bs2korea.cafe24.com , referral,2
 Referral,burnscorp.cafe24.com , referral,2
 Referral,catenoid.net , referral,2
 Referral,cfd51260.cafe24.com , referral,2
+Referral,convenii.cafe24.com , referral,2
 Referral,curelife7676.cafe24.com , referral,2
 Referral,demoo15411.cafe24.com , referral,2
-Referral,drhager.cafe24.com , referral,2
-Referral,eve014.cafe24.com , referral,2
 Referral,exerapy.cafe24.com , referral,2
 Referral,hojaefs001.cafe24.com , referral,2
 Referral,italyjungmiso.cafe24.com , referral,2
+Referral,kimutaku4.cafe24.com , referral,2
 Referral,kodia2511.cafe24.com , referral,2
 Referral,ksr8569.cafe24.com , referral,2
 Referral,lilyeve.cafe24.com , referral,2
@@ -74,7 +79,8 @@ Referral,mail.google.com , referral,2
 Referral,microkorea.cafe24.com , referral,2
 Referral,mocres.cafe24.com , referral,2
 Referral,namu.wiki , referral,2
-Referral,overthebrand.cafe24.com , referral,2
+Referral,nid.naver.com , referral,2
+Referral,orcite2017.cafe24.com , referral,2
 Referral,pshsh0801.cafe24.com , referral,2
 Referral,quat.cafe24.com , referral,2
 Referral,qwqqwq11.cafe24.com , referral,2
@@ -83,7 +89,6 @@ Referral,resnovae.cafe24.com , referral,2
 Referral,sammiglobal.cafe24.com , referral,2
 Referral,store.cafe24.com , referral,2
 Referral,store.makeshop.co.kr , referral,2
-Referral,volvikapparel.cafe24.com , referral,2
 Referral,zerofood0.cafe24.com , referral,2
 Unassigned,charlla_inblog , blog,2
 Unassigned,inblog , blog,2
@@ -98,18 +103,21 @@ Referral,adpderma.cafe24.com , referral,1
 Referral,adxotn.cafe24.com , referral,1
 Referral,agoraagora.cafe24.com , referral,1
 Referral,ahres.cafe24.com , referral,1
+Referral,anbio.cafe24.com , referral,1
 Referral,annekleinkr.cafe24.com , referral,1
 Referral,aoyukr.cafe24.com , referral,1
+Referral,aqarakr.cafe24.com , referral,1
 Referral,arenakorea1.cafe24.com , referral,1
 Referral,aromigagu1.cafe24.com , referral,1
-Referral,asas2855.cafe24.com , referral,1
 Referral,atms4816.cafe24.com , referral,1
 Referral,aubyou.cafe24.com , referral,1
 Referral,avelora.cafe24.com , referral,1
 Referral,bionicorga.cafe24.com , referral,1
+Referral,bmyside.cafe24.com , referral,1
 Referral,board.worksmobile.com , referral,1
 Referral,bondi1.cafe24.com , referral,1
 Referral,bonjourcc.cafe24.com , referral,1
+Referral,bylab0315.cafe24.com , referral,1
 Referral,byrehtom01.cafe24.com , referral,1
 Referral,cerolabs.cafe24.com , referral,1
 Referral,chairfactory.cafe24.com , referral,1
@@ -124,7 +132,6 @@ Referral,cloop.cafe24.com , referral,1
 Referral,cncinter0696.cafe24.com , referral,1
 Referral,cncom0812.cafe24.com , referral,1
 Referral,cobblesports24.cafe24.com , referral,1
-Referral,convenii.cafe24.com , referral,1
 Referral,daegu1988.cafe24.com , referral,1
 Referral,dasodabeauty.cafe24.com , referral,1
 Referral,defemme.cafe24.com , referral,1
@@ -137,9 +144,12 @@ Referral,dqlovejin.cafe24.com , referral,1
 Referral,dyota2082.cafe24.com , referral,1
 Referral,ecoutedy.cafe24.com , referral,1
 Referral,ecudemo360621.cafe24.com , referral,1
+Referral,ecudemo376370.cafe24.com , referral,1
 Referral,ecudemo383847.cafe24.com , referral,1
+Referral,ecudemo385715.cafe24.com , referral,1
 Referral,edimedy.cafe24.com , referral,1
 Referral,ept0510.cafe24.com , referral,1
+Referral,essd31.cafe24.com , referral,1
 Referral,essenemco.cafe24.com , referral,1
 Referral,factomall.cafe24.com , referral,1
 Referral,farmtt100bs.cafe24.com , referral,1
@@ -151,11 +161,15 @@ Referral,fs6066.cafe24.com , referral,1
 Referral,fvrtsbeauty.cafe24.com , referral,1
 Referral,genother.cafe24.com , referral,1
 Referral,ggongnyang.cafe24.com , referral,1
+Referral,giemar.cafe24.com , referral,1
 Referral,gmlsendsl.cafe24.com , referral,1
+Referral,googleads.g.doubleclick.net , referral,1
 Referral,graljjang234.cafe24.com , referral,1
+Referral,gw.findformkorea.com , referral,1
 Referral,gw.unix-elec.co.kr , referral,1
 Referral,gw.xexymix.com , referral,1
 Referral,hangpasa03.cafe24.com , referral,1
+Referral,hebetheyouth1.cafe24.com , referral,1
 Referral,hhgbu.cafe24.com , referral,1
 Referral,hlbgswell247.cafe24.com , referral,1
 Referral,howtoloveme.cafe24.com , referral,1
@@ -164,19 +178,20 @@ Referral,jinygolf7.cafe24.com , referral,1
 Referral,john9240.cafe24.com , referral,1
 Referral,kamp65871.cafe24.com , referral,1
 Referral,keechel.cafe24.com , referral,1
-Referral,kimutaku4.cafe24.com , referral,1
 Referral,ko2hand.cafe24.com , referral,1
 Referral,kr1078749886.cafe24.com , referral,1
 Referral,kurved.cafe24.com , referral,1
 Referral,likedcompany.cafe24.com , referral,1
 Referral,lingseoul2.cafe24.com , referral,1
 Referral,liondaughter.cafe24.com , referral,1
+Referral,lusom.cafe24.com , referral,1
 Referral,meinlab57.cafe24.com , referral,1
 Referral,midnm2019.cafe24.com , referral,1
 Referral,mimoksink00.cafe24.com , referral,1
 Referral,minimalpiercing.cafe24.com , referral,1
 Referral,misekiseoul.cafe24.com , referral,1
 Referral,miyawa.cafe24.com , referral,1
+Referral,monamhee.cafe24.com , referral,1
 Referral,mujagistudio.cafe24.com , referral,1
 Referral,mygoodsday.cafe24.com , referral,1
 Referral,myhomesick.cafe24.com , referral,1
@@ -184,20 +199,20 @@ Referral,mypureda.mycafe24.com , referral,1
 Referral,namfood.cafe24.com , referral,1
 Referral,ncssry01.cafe24.com , referral,1
 Referral,nextgoods.cafe24.com , referral,1
-Referral,nid.naver.com , referral,1
 Referral,nix0310.cafe24.com , referral,1
 Referral,noaracos.cafe24.com , referral,1
 Referral,novaecom.cafe24.com , referral,1
 Referral,oaalab.cafe24.com , referral,1
 Referral,oamohaus.cafe24.com , referral,1
+Referral,odak1.cafe24.com , referral,1
 Referral,onlyhim1.cafe24.com , referral,1
 Referral,opaaap.cafe24.com , referral,1
 Referral,openads.co.kr , referral,1
 Referral,openpocha.cafe24.com , referral,1
-Referral,orcite2017.cafe24.com , referral,1
 Referral,orgabon.cafe24.com , referral,1
 Referral,organicmaru.cafe24.com , referral,1
 Referral,ouii.cafe24.com , referral,1
+Referral,outofafrica.cafe24.com , referral,1
 Referral,pandayang.cafe24.com , referral,1
 Referral,pinksaltcloset.cafe24.com , referral,1
 Referral,plac01.cafe24.com , referral,1
@@ -233,6 +248,7 @@ Referral,unixshop.cafe24.com , referral,1
 Referral,usul.cafe24.com , referral,1
 Referral,vegavery2019.cafe24.com , referral,1
 Referral,vinne2022.cafe24.com , referral,1
+Referral,weitblic.cafe24.com , referral,1
 Referral,wellnessy.cafe24.com , referral,1
 Referral,wemadekorea.cafe24.com , referral,1
 Referral,whiteapple20.cafe24.com , referral,1
