@@ -494,10 +494,6 @@
       <svg id="rawDataChevron" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-400 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
     </button>
     <div id="rawDataContent" class="hidden overflow-x-auto mt-4">
-    <div class="flex items-center justify-between mb-1">
-      <h3 class="text-base font-bold text-gray-700">Raw Data</h3>
-    </div>
-    
     <table class="w-full text-base text-left">
       <thead>
         <tr class="border-b border-gray-100">
@@ -965,13 +961,15 @@ const adCpaChartRef = new Chart(document.getElementById('adCpaChart'), {
   type:'bar',
   data:{ labels:adLabels, datasets:[{ label:'CPA', data:adEff.map(d=>d.cpa), backgroundColor:adColors.map(c=>c+'33'), borderColor:adColors, borderWidth:2, borderRadius:6, borderSkipped:false }] },
   options:{ responsive:true, plugins:{ legend:{display:false}, tooltip:{callbacks:{label:ctx=>` CPA: ${ctx.parsed.y.toLocaleString()}원`}} },
-    scales:{ x:{grid:{display:false},ticks:{color:'#111827',font:{size:14,family:'Pretendard'}}}, y:{grid:{color:'#f1f5f9'}, max:400000, ticks:{stepSize:100000, color:'#111827',font:{size:13},callback:v=>v>=10000?Math.round(v/10000)+'만원':v+'원'}} } },
+    scales:{ x:{grid:{display:false},ticks:{color:'#111827',font:{size:14,family:'Pretendard'}}}, y:{grid:{color:'#f1f5f9'}, ticks:{color:'#111827',font:{size:13},callback:v=>v>=10000?Math.round(v/10000)+'만원':v+'원'}} } },
   plugins:[{ id:'cpaLbl', afterDatasetDraw(chart) {
     const {ctx}=chart;
     chart.getDatasetMeta(0).data.forEach((bar,i)=>{
       const val=adEff[i].cpa;
+      const su=adEff[i].su;
+      const lbl = (su>0 && val>0) ? (val>=10000?Math.round(val/10000)+'만원':val+'원') : '-';
       ctx.save(); ctx.font='bold 13px Pretendard,sans-serif'; ctx.fillStyle=adEff[i].color; ctx.textAlign='center'; ctx.textBaseline='bottom';
-      ctx.fillText(val>=10000?Math.round(val/10000)+'만원':val+'원', bar.x, bar.y-4); ctx.restore();
+      ctx.fillText(lbl, bar.x, bar.y-4); ctx.restore();
     });
   }}]
 });
@@ -986,7 +984,7 @@ const adEffChartRef = new Chart(document.getElementById('adEffChart'), {
       tooltip:{callbacks:{label:ctx=>{ const d=adEff[ctx.datasetIndex]; return [`${d.name.replace('\n',' ')}`,`전환율 ${d.cvr}% / CPA ${Math.round(d.cpa/10000)}만원`,`광고비 ${d.cost/10000}만원`]; }}} },
     scales:{
       x:{title:{display:true,text:'회원가입율 (%)',color:'#6b7280',font:{size:13}}, ticks:{color:'#111827',font:{size:13},callback:v=>v+'%'}, grid:{color:'#f1f5f9'}, min:0},
-      y:{title:{display:true,text:'CPA (만원)',color:'#6b7280',font:{size:13}}, ticks:{color:'#111827',font:{size:13},stepSize:10,callback:v=>v+'만'}, grid:{color:'#f1f5f9'}, min:0, max:40}
+      y:{title:{display:true,text:'CPA (만원)',color:'#6b7280',font:{size:13}}, ticks:{color:'#111827',font:{size:13},callback:v=>v+'만'}, grid:{color:'#f1f5f9'}, min:0}
     }
   }
 });
@@ -1774,11 +1772,7 @@ var _curMonth = '2026-06';
 var _monthNames = {"2026-04": "4월", "2026-05": "5월", "2026-06": "6월"};
 
 function switchMonth(key) {
-  // 현재 활성 탭과 같으면 무시
-  var _activeTab = document.querySelector('.tab-btn.border-b-2');
-  if (_activeTab && _activeTab.dataset.month === key) return;
-  // 현재 월(최신) 탭으로 돌아오면 페이지 리로드
-  if (key === _curMonth) { window.location.reload(); return; }
+  if (key === _curMonth) return;
   var d = _allMonths[key];
   if (!d) return;
 
@@ -1861,8 +1855,6 @@ function switchMonth(key) {
       var k2 = adKeys[i];
       var cvr2 = ae.v ? (ae.su/ae.v*100).toFixed(2) : 0;
       var cpa2 = ae.su ? Math.round(ae.cost/ae.su/10000) : 0;
-      var cost2 = Math.round(ae.cost/10000);
-      setEl('kpi_cost_'+k2, cost2+'만');
       setEl('kpi_v_'+k2,   ae.v.toLocaleString());
       setEl('kpi_su_'+k2,  ae.su.toLocaleString());
       setEl('kpi_cvr_'+k2, cvr2+'%');
