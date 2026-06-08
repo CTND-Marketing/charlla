@@ -784,7 +784,7 @@ inits += 'if(window.cvrChartRef){var cv=window.cvrChartRef;cv.data.labels='+json
 for i in range(len(ch_data)):
     inits += 'if(window.channelTrendChartRef){window.channelTrendChartRef.data.labels='+json.dumps(month_labels_list)+';window.channelTrendChartRef.data.datasets['+str(i)+'].data='+json.dumps(ch_trend_pct[i])+';window.channelTrendChartRef.data.datasets['+str(i)+'].su='+json.dumps(ch_trend_abs[i])+';}\n'
 inits += 'if(window.channelTrendChartRef){window.channelTrendChartRef.update();}\n'
-inits += 'if(typeof adCpaChartRef!=="undefined"&&adCpaChartRef){adCpaChartRef.data.datasets[0].data='+json.dumps(adEff_cpa)+';adCpaChartRef.options.scales.y.max=undefined;adCpaChartRef.update();}\n'
+inits += 'if(typeof adCpaChartRef!=="undefined"&&adCpaChartRef){adCpaChartRef.data.datasets[0].data=adEff.map(function(d){return d.su>0?Math.round(d.cost/d.su):0;});adCpaChartRef.options.scales.y.max=undefined;adCpaChartRef.update();}\n'
 inits += 'if(typeof adEffChartRef!=="undefined"&&adEffChartRef){'+\
     ''.join(['adEffChartRef.data.datasets['+str(i)+'].data=[{x:'+str(adEff_cvr_[i])+',y:'+(str(round(adEff_cpa[i]/10000)) if adEff_cpa[i] is not None else '0')+',r:'+str(max(8,round(adEff_cost[i]/maxCost*28)))+'}];' for i in range(len(adEff))])+\
     'adEffChartRef.options.scales.y.max=undefined;adEffChartRef.options.scales.x.max=undefined;adEffChartRef.update();}\n'
