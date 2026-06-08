@@ -565,8 +565,6 @@ for i, k in enumerate(['google','gdn','naver','cafe24']):
     c = rep(c,'kpi_v_'+k,   str(v))
     # 가입수는 p 태그 textContent로 주입
     c = re.sub(r'id="kpi_su_' + k + r'">[^<]*</p>', 'id="kpi_su_' + k + '">' + str(su) + '</p>', c)
-    cost_man = round(adEff[i]['cost'] / 10000)
-    c = rep(c,'kpi_cost_'+k, str(cost_man)+'만')
     c = rep(c,'kpi_cvr_'+k, str(cvr_)+'%')
     c = rep(c,'kpi_cpa_'+k, str(cpa_)+'만')
 
@@ -618,11 +616,7 @@ var _curMonth = '{cur_key}';
 var _monthNames = {json.dumps({k: mo_names.get(int(k[5:]),k[5:]) for k in sorted_keys}, ensure_ascii=False)};
 
 function switchMonth(key) {{
-  // 현재 활성 탭과 같으면 무시
-  var _activeTab = document.querySelector('.tab-btn.border-b-2');
-  if (_activeTab && _activeTab.dataset.month === key) return;
-  // 현재 월(최신) 탭으로 돌아오면 페이지 리로드
-  if (key === _curMonth) {{ window.location.reload(); return; }}
+  if (key === _curMonth) return;
   var d = _allMonths[key];
   if (!d) return;
 
@@ -705,8 +699,6 @@ function switchMonth(key) {{
       var k2 = adKeys[i];
       var cvr2 = ae.v ? (ae.su/ae.v*100).toFixed(2) : 0;
       var cpa2 = ae.su ? Math.round(ae.cost/ae.su/10000) : 0;
-      var cost2 = Math.round(ae.cost/10000);
-      setEl('kpi_cost_'+k2, cost2+'만');
       setEl('kpi_v_'+k2,   ae.v.toLocaleString());
       setEl('kpi_su_'+k2,  ae.su.toLocaleString());
       setEl('kpi_cvr_'+k2, cvr2+'%');
@@ -774,7 +766,7 @@ c = c[:header_end] + '\n' + tabs_html + c[header_end:]
 # ── 차트 데이터 script 주입
 mo = report_month
 
-adEff_cpa  = [d['cost']//d['su'] if d['su'] else 0 for d in adEff]
+adEff_cpa  = [d['cost']//d['su'] if d['su'] else None for d in adEff]
 adEff_cvr_ = [round(d['su']/d['v']*100,2) if d['v'] else 0 for d in adEff]
 adEff_cost = [d['cost'] for d in adEff]
 maxCost    = max(adEff_cost) if adEff_cost else 1
