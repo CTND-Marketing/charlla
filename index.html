@@ -953,7 +953,7 @@ window.channelTrendChartRef = new Chart(document.getElementById('channelTrendCha
 
 // ── 유료 광고 효율 차트
 const adEff = [{name:'Google\n검색광고',v:4,su:0,cost:2600000,color:'#3b82f6'},{name:'GDN',v:11,su:0,cost:1400000,color:'#7c3aed'},{name:'Naver\n검색광고',v:8,su:0,cost:1000000,color:'#10b981'},{name:'카페24\n배너',v:56,su:2,cost:7560000,color:'#f59e0b'},];
-adEff.forEach(d => { d.cpa=Math.round(d.cost/d.su); d.cvr=+(d.su/d.v*100).toFixed(2); });
+adEff.forEach(d => { d.cpa=d.su>0?Math.round(d.cost/d.su):0; d.cvr=d.v>0?+(d.su/d.v*100).toFixed(2):0; });
 const adLabels = adEff.map(d=>d.name);
 const adColors = adEff.map(d=>d.color);
 
