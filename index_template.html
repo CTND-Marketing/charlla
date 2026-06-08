@@ -484,15 +484,31 @@
 
   </div>
 
+  <!-- INSIGHTS -->
+  <div class="card p-8 mb-8">
+    <h3 class="text-lg font-bold text-gray-800 mb-6">주요 인사이트</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div>
+        <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">검색/배너광고 독주</span>
+        <p class="text-base text-gray-600 mt-3 leading-relaxed">Paid Search 유입 <b>1,181명 (38.6%)</b>으로 단일 채널 최대. 무료체험 클릭의 85.9%를 견인하는 핵심 획득 채널.</p>
+      </div>
+      <div>
+        <span class="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-bold">가입 병목 구간</span>
+        <p class="text-base text-gray-600 mt-3 leading-relaxed">가입정책 동의(494명) → 회원가입(129명) 이탈 <b>73.9%</b>. 이 구간이 최대 병목으로 UX 개선이 필요합니다.</p>
+      </div>
+      <div>
+        <span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold">카페24 고효율</span>
+        <p class="text-base text-gray-600 mt-3 leading-relaxed">카페24 전환율 <b>7.9%</b>로 최상위. 유입 볼륨은 작지만 실제 전환 효율이 가장 높은 채널.</p>
+      </div>
+      <div>
+        <span class="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-bold">데이터 편차</span>
+        <p class="text-base text-gray-600 mt-3 leading-relaxed">GA4(129명) vs Metabase(160명) <b>31명 차이</b>. 실제 DB에 가까운 Metabase 기준으로 성과 판단을 권장합니다.</p>
+      </div>
+    </div>
+  </div>
 
-
-  <!-- RAW TABLE -->
-  <div class="card p-6 mb-6">
-    <button onclick="toggleRawData()" class="flex items-center gap-2 w-full text-left" id="rawDataToggleBtn">
-      <h3 class="text-base font-bold text-gray-700">Raw Data</h3>
-      <svg id="rawDataChevron" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-400 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-    </button>
-    <div id="rawDataContent" class="hidden overflow-x-auto mt-4">
+  <!-- RAW TABLE 누적 -->
+  <div class="card p-6 overflow-x-auto mb-6">
     <div class="flex items-center justify-between mb-1">
       <h3 class="text-base font-bold text-gray-700">Raw Data</h3>
     </div>
@@ -522,25 +538,11 @@
         </tr>
       </tfoot>
     </table>
-    </div>
   </div>
 
 
 </div>
 <script>
-
-function toggleRawData() {
-  var content = document.getElementById('rawDataContent');
-  var chevron = document.getElementById('rawDataChevron');
-  if (content.classList.contains('hidden')) {
-    content.classList.remove('hidden');
-    chevron.style.transform = 'rotate(180deg)';
-  } else {
-    content.classList.add('hidden');
-    chevron.style.transform = 'rotate(0deg)';
-  }
-}
-
 const COLOR_GA = '#7c3aed';
 const COLOR_MB = '#10b981';
 
@@ -611,8 +613,8 @@ window.weeklyAprilChartRef = new Chart(document.getElementById('weeklyAprilChart
     labels: ['4월 1주차 (4/1~4/8)', '4월 2주차 (4/9~4/15)', '4월 3주차 (4/16~4/22)', '4월 4주차 (4/23~4/30)'],
     datasets: [
       { type:'bar',  label:'방문자',       data:[1710,1532,917,null], backgroundColor:'rgba(59,130,246,0.15)', borderColor:'#3b82f6', borderWidth:2, borderRadius:6, borderSkipped:false, yAxisID:'y', order:3 },
-      { type:'line', label:'Metabase 가입', data:[79,75,46,null],      borderColor:COLOR_MB, backgroundColor:'rgba(16,185,129,0.06)', borderWidth:2.5, pointBackgroundColor:COLOR_MB, pointRadius:6, borderDash:[4,3], tension:0, yAxisID:'y2', order:1, showLine:true },
-      { type:'line', label:'GA4 가입',      data:[61,49,19,null],      borderColor:COLOR_GA, backgroundColor:'rgba(124,58,237,0.08)', borderWidth:2.5, pointBackgroundColor:COLOR_GA, pointRadius:6, tension:0, yAxisID:'y2', order:2, showLine:true }
+      { type:'line', label:'Metabase 가입', data:[79,75,46,null],      borderColor:COLOR_MB, backgroundColor:'rgba(16,185,129,0.06)', borderWidth:2.5, pointBackgroundColor:COLOR_MB, pointRadius:6, borderDash:[4,3], tension:0, yAxisID:'y2', order:1 },
+      { type:'line', label:'GA4 가입',      data:[61,49,19,null],      borderColor:COLOR_GA, backgroundColor:'rgba(124,58,237,0.08)', borderWidth:2.5, pointBackgroundColor:COLOR_GA, pointRadius:6, tension:0, yAxisID:'y2', order:2 }
     ]
   },
   options: {
@@ -964,13 +966,15 @@ const adCpaChartRef = new Chart(document.getElementById('adCpaChart'), {
   type:'bar',
   data:{ labels:adLabels, datasets:[{ label:'CPA', data:adEff.map(d=>d.cpa), backgroundColor:adColors.map(c=>c+'33'), borderColor:adColors, borderWidth:2, borderRadius:6, borderSkipped:false }] },
   options:{ responsive:true, plugins:{ legend:{display:false}, tooltip:{callbacks:{label:ctx=>` CPA: ${ctx.parsed.y.toLocaleString()}원`}} },
-    scales:{ x:{grid:{display:false},ticks:{color:'#111827',font:{size:14,family:'Pretendard'}}}, y:{grid:{color:'#f1f5f9'}, max:400000, ticks:{stepSize:100000, color:'#111827',font:{size:13},callback:v=>v>=10000?Math.round(v/10000)+'만원':v+'원'}} } },
+    scales:{ x:{grid:{display:false},ticks:{color:'#111827',font:{size:14,family:'Pretendard'}}}, y:{grid:{color:'#f1f5f9'}, ticks:{color:'#111827',font:{size:13},callback:v=>v>=10000?Math.round(v/10000)+'만원':v+'원'}} } },
   plugins:[{ id:'cpaLbl', afterDatasetDraw(chart) {
     const {ctx}=chart;
     chart.getDatasetMeta(0).data.forEach((bar,i)=>{
       const val=adEff[i].cpa;
+      const su=adEff[i].su;
+      const lbl = (su>0 && val>0) ? (val>=10000?Math.round(val/10000)+'만원':val+'원') : '-';
       ctx.save(); ctx.font='bold 13px Pretendard,sans-serif'; ctx.fillStyle=adEff[i].color; ctx.textAlign='center'; ctx.textBaseline='bottom';
-      ctx.fillText(val>=10000?Math.round(val/10000)+'만원':val+'원', bar.x, bar.y-4); ctx.restore();
+      ctx.fillText(lbl, bar.x, bar.y-4); ctx.restore();
     });
   }}]
 });
@@ -985,7 +989,7 @@ const adEffChartRef = new Chart(document.getElementById('adEffChart'), {
       tooltip:{callbacks:{label:ctx=>{ const d=adEff[ctx.datasetIndex]; return [`${d.name.replace('\n',' ')}`,`전환율 ${d.cvr}% / CPA ${Math.round(d.cpa/10000)}만원`,`광고비 ${d.cost/10000}만원`]; }}} },
     scales:{
       x:{title:{display:true,text:'회원가입율 (%)',color:'#6b7280',font:{size:13}}, ticks:{color:'#111827',font:{size:13},callback:v=>v+'%'}, grid:{color:'#f1f5f9'}, min:0},
-      y:{title:{display:true,text:'CPA (만원)',color:'#6b7280',font:{size:13}}, ticks:{color:'#111827',font:{size:13},stepSize:10,callback:v=>v+'만'}, grid:{color:'#f1f5f9'}, min:0, max:40}
+      y:{title:{display:true,text:'CPA (만원)',color:'#6b7280',font:{size:13}}, ticks:{color:'#111827',font:{size:13},callback:v=>v+'만'}, grid:{color:'#f1f5f9'}, min:0}
     }
   }
 });
