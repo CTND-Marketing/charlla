@@ -966,7 +966,7 @@ const adCpaChartRef = new Chart(document.getElementById('adCpaChart'), {
     chart.getDatasetMeta(0).data.forEach((bar,i)=>{
       const val=adEff[i].cpa;
       const su=adEff[i].su;
-      const lbl = (su>0 && val>0) ? (val>=10000?Math.round(val/10000)+'만원':val+'원') : '-';
+      const lbl = su>0 ? (val>=10000?Math.round(val/10000)+'만원':val+'원') : '-';
       ctx.save(); ctx.font='bold 13px Pretendard,sans-serif'; ctx.fillStyle=adEff[i].color; ctx.textAlign='center'; ctx.textBaseline='bottom';
       ctx.fillText(lbl, bar.x, bar.y-4); ctx.restore();
     });
