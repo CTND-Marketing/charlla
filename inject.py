@@ -565,8 +565,6 @@ for i, k in enumerate(['google','gdn','naver','cafe24']):
     c = rep(c,'kpi_v_'+k,   str(v))
     # 가입수는 p 태그 textContent로 주입
     c = re.sub(r'id="kpi_su_' + k + r'">[^<]*</p>', 'id="kpi_su_' + k + '">' + str(su) + '</p>', c)
-    cost_man = round(adEff[i]['cost'] / 10000)
-    c = rep(c,'kpi_cost_'+k, str(cost_man)+'만')
     c = rep(c,'kpi_cvr_'+k, str(cvr_)+'%')
     c = rep(c,'kpi_cpa_'+k, str(cpa_)+'만')
 
@@ -618,7 +616,11 @@ var _curMonth = '{cur_key}';
 var _monthNames = {json.dumps({k: mo_names.get(int(k[5:]),k[5:]) for k in sorted_keys}, ensure_ascii=False)};
 
 function switchMonth(key) {{
-  if (key === _curMonth) return;
+  // 현재 활성 탭과 동일하면 무시
+  var _activeBtn = document.querySelector('.tab-btn.border-b-2');
+  if (_activeBtn && _activeBtn.dataset.month === key) return;
+  // 최신 탭으로 돌아오면 페이지 리로드 (탭 개수와 무관하게 항상 동작)
+  if (key === _curMonth) {{ window.location.reload(); return; }}
   var d = _allMonths[key];
   if (!d) return;
 
@@ -784,9 +786,9 @@ inits += 'if(window.cvrChartRef){var cv=window.cvrChartRef;cv.data.labels='+json
 for i in range(len(ch_data)):
     inits += 'if(window.channelTrendChartRef){window.channelTrendChartRef.data.labels='+json.dumps(month_labels_list)+';window.channelTrendChartRef.data.datasets['+str(i)+'].data='+json.dumps(ch_trend_pct[i])+';window.channelTrendChartRef.data.datasets['+str(i)+'].su='+json.dumps(ch_trend_abs[i])+';}\n'
 inits += 'if(window.channelTrendChartRef){window.channelTrendChartRef.update();}\n'
-inits += 'if(typeof adCpaChartRef!=="undefined"&&adCpaChartRef){adCpaChartRef.data.datasets[0].data=adEff.map(function(d){return d.su>0?Math.round(d.cost/d.su):0;});adCpaChartRef.options.scales.y.max=undefined;adCpaChartRef.update();}\n'
+inits += 'if(typeof adCpaChartRef!=="undefined"&&adCpaChartRef){adCpaChartRef.data.datasets[0].data='+json.dumps(adEff_cpa)+';adCpaChartRef.options.scales.y.max=undefined;adCpaChartRef.update();}\n'
 inits += 'if(typeof adEffChartRef!=="undefined"&&adEffChartRef){'+\
-    ''.join(['adEffChartRef.data.datasets['+str(i)+'].data=[{x:'+str(adEff_cvr_[i])+',y:'+(str(round(adEff_cpa[i]/10000)) if adEff_cpa[i] is not None else '0')+',r:'+str(max(8,round(adEff_cost[i]/maxCost*28)))+'}];' for i in range(len(adEff))])+\
+    ''.join(['adEffChartRef.data.datasets['+str(i)+'].data=[{x:'+str(adEff_cvr_[i])+',y:'+str(round(adEff_cpa[i]/10000))+',r:'+str(max(8,round(adEff_cost[i]/maxCost*28)))+'}];' for i in range(len(adEff))])+\
     'adEffChartRef.options.scales.y.max=undefined;adEffChartRef.options.scales.x.max=undefined;adEffChartRef.update();}\n'
 inits += '});\n'
 
