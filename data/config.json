@@ -1,6 +1,6 @@
 {
   "ga4Cumulative": [
-    0,
+    90,
     150,
     0,
     0
@@ -1267,8 +1267,8 @@
         0
       ],
       "weekGa4": [
-        null,
-        150,
+        90,
+        60,
         null,
         null
       ],
@@ -1627,7 +1627,7 @@
       "totalAc": 474,
       "totalPo": 390,
       "ga4Cumulative": [
-        0,
+        90,
         150,
         0,
         0
