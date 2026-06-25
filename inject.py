@@ -222,7 +222,7 @@ try:
         # 당월 주차 분기 (목~수 기준)
         if mo == report_month and yr == report_year:
             ranges = get_week_ranges(yr, mo)
-            for w_idx, (ws, we) in enumerate(ranges, 1):
+            for w_idx, (w_s, w_e) in enumerate(ranges, 1):
                 if ws <= d.day <= we:
                     week_mb_data[w_idx] += 1
                     break
@@ -243,7 +243,7 @@ mb_cvr   = round(mb_cur/total_v*100, 2) if total_v else 0
 # ── GA4 주차별 자동 계산 (목~수 기준)
 ranges_cur = get_week_ranges(report_year, report_month)
 cur_week = 4
-for w_idx, (ws, we) in enumerate(ranges_cur, 1):
+for w_idx, (w_s, w_e) in enumerate(ranges_cur, 1):
     if ws <= report_day <= we:
         cur_week = w_idx
         break
