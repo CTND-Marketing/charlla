@@ -565,6 +565,8 @@ for i, k in enumerate(['google','gdn','naver','cafe24']):
     c = rep(c,'kpi_v_'+k,   str(v))
     # 가입수는 p 태그 textContent로 주입
     c = re.sub(r'id="kpi_su_' + k + r'">[^<]*</p>', 'id="kpi_su_' + k + '">' + str(su) + '</p>', c)
+    cost_man = round(adEff[i]['cost'] / 10000)
+    c = rep(c,'kpi_cost_'+k, str(cost_man)+'만')
     c = rep(c,'kpi_cvr_'+k, str(cvr_)+'%')
     c = rep(c,'kpi_cpa_'+k, str(cpa_)+'만')
 
@@ -701,10 +703,12 @@ function switchMonth(key) {{
       var k2 = adKeys[i];
       var cvr2 = ae.v ? (ae.su/ae.v*100).toFixed(2) : 0;
       var cpa2 = ae.su ? Math.round(ae.cost/ae.su/10000) : 0;
-      setEl('kpi_v_'+k2,   ae.v.toLocaleString());
-      setEl('kpi_su_'+k2,  ae.su.toLocaleString());
-      setEl('kpi_cvr_'+k2, cvr2+'%');
-      setEl('kpi_cpa_'+k2, cpa2+'만');
+      var cost2 = Math.round(ae.cost/10000);
+      setEl('kpi_v_'+k2,    ae.v.toLocaleString());
+      setEl('kpi_su_'+k2,   ae.su.toLocaleString());
+      setEl('kpi_cost_'+k2, cost2+'만');
+      setEl('kpi_cvr_'+k2,  cvr2+'%');
+      setEl('kpi_cpa_'+k2,  cpa2+'만');
     }});
     if (typeof adCpaChartRef !== 'undefined' && adCpaChartRef) {{
       adCpaChartRef.data.datasets[0].data = d.adEff.map(function(ae){{return ae.su?Math.round(ae.cost/ae.su):0;}});
