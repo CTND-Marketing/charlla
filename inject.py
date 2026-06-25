@@ -223,7 +223,7 @@ try:
         if mo == report_month and yr == report_year:
             ranges = get_week_ranges(yr, mo)
             for w_idx, (w_s, w_e) in enumerate(ranges, 1):
-                if ws <= d.day <= we:
+                if w_s <= d.day <= w_e:
                     week_mb_data[w_idx] += 1
                     break
 except Exception as e:
@@ -244,7 +244,7 @@ mb_cvr   = round(mb_cur/total_v*100, 2) if total_v else 0
 ranges_cur = get_week_ranges(report_year, report_month)
 cur_week = 4
 for w_idx, (w_s, w_e) in enumerate(ranges_cur, 1):
-    if ws <= report_day <= we:
+    if w_s <= report_day <= w_e:
         cur_week = w_idx
         break
 
@@ -616,10 +616,8 @@ var _curMonth = '{cur_key}';
 var _monthNames = {json.dumps({k: mo_names.get(int(k[5:]),k[5:]) for k in sorted_keys}, ensure_ascii=False)};
 
 function switchMonth(key) {{
-  // 현재 활성 탭과 동일하면 무시
   var _activeBtn = document.querySelector('.tab-btn.border-b-2');
   if (_activeBtn && _activeBtn.dataset.month === key) return;
-  // 최신 탭으로 돌아오면 페이지 리로드 (탭 개수와 무관하게 항상 동작)
   if (key === _curMonth) {{ window.location.reload(); return; }}
   var d = _allMonths[key];
   if (!d) return;
