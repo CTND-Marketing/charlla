@@ -74,13 +74,6 @@ ad_su_manual    = {
     'naver':  ad_su_raw.get('Naver', None),
     'cafe24': ad_su_raw.get('카페24', None),
 }
-# ga4_cumulative: manual.json 우선 (월 시작 시 리셋), 없으면 config
-ga4_cumulative = manual.get('ga4_누적', None)
-if ga4_cumulative is None:
-    ga4_cumulative = config.get('ga4Cumulative', [0, 0, 0, 0])
-# None 값 처리
-ga4_cumulative = [v if v is not None else 0 for v in ga4_cumulative]
-print(f"ga4_cumulative: {ga4_cumulative}")
 months_data     = config.get('months', {})  # 월별 저장 데이터
 
 try:
@@ -95,6 +88,23 @@ except:
     report_day   = 29
 
 cur_month_key = f'{report_year}-{report_month:02d}'  # e.g. "2026-04"
+
+# ga4_cumulative: 기본은 events.csv 기반 자동 계산.
+# 단, manual.json에 "ga4_누적"이 명시돼 있으면 그걸 우선 사용 (수동 보정용 안전장치)
+if manual.get('ga4_누적') is not None:
+    ga4_cumulative = manual.get('ga4_누적')
+    print("ga4_cumulative: manual.json 수동값 사용")
+else:
+    # config.json에 저장된 값이 "이번 달" 것이면 그대로 이어서 사용,
+    # 월이 바뀌었으면 0부터 새로 시작 (월 시작 시 자동 리셋)
+    _cum_month_saved = config.get('ga4CumulativeMonth')
+    if _cum_month_saved == cur_month_key:
+        ga4_cumulative = config.get('ga4Cumulative', [0, 0, 0, 0])
+    else:
+        ga4_cumulative = [0, 0, 0, 0]
+    print("ga4_cumulative: 자동 계산값 사용")
+ga4_cumulative = [v if v is not None else 0 for v in ga4_cumulative]
+print(f"ga4_cumulative: {ga4_cumulative}")
 
 # ── 채널/이벤트 매핑
 def map_visitor(g, s, m):
@@ -256,10 +266,11 @@ for w in range(1, cur_week):
     week_ga4[w - 1] = c_val - p if c_val > 0 else None
 week_ga4[cur_week - 1] = total_su - prev_cum
 
-# config.json에 GA4 누적값 저장
+# config.json에 GA4 누적값 저장 (어느 달 것인지도 같이 기록 → 다음 실행 시 월 경계 자동 감지)
 new_cum = ga4_cumulative[:]
 new_cum[cur_week - 1] = total_su
 config['ga4Cumulative'] = new_cum
+config['ga4CumulativeMonth'] = cur_month_key
 
 # ── 채널 집계
 ch_defs = [
@@ -485,6 +496,7 @@ for _prev_k in prev_keys:
 # config.json에는 자동 관리 항목만 저장 (manual.json 항목 제외)
 save_config = {
     'ga4Cumulative': new_cum,
+    'ga4CumulativeMonth': cur_month_key,
     'months': months_data,
 }
 
