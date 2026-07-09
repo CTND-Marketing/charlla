@@ -5,6 +5,7 @@ on:
     paths:
       - 'data/**'
       - 'index_template.html'
+      - 'inject.py'
   workflow_dispatch:
 
 jobs:
