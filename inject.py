@@ -5,7 +5,7 @@ from datetime import datetime, date, timedelta
 def get_week_ranges(year, month):
     """1주차: 1일~첫 수요일, 단 3일 이하면 다음 수요일까지 연장"""
     d = date(year, month, 1)
-    while d.weekday() != 2:  # 첫 수요일
+    while d.weekday() != 2:  # 첫 수요일 
         d += timedelta(days=1)
     first_wed = d.day
     last_day = calendar.monthrange(year, month)[1]
