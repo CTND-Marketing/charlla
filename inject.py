@@ -130,6 +130,7 @@ def map_visitor(g, s, m):
     if g == 'display' and ('cafe24' in s or m in ('banner','floating_banner')): return ('display','CAFE24 banner')
     if g == 'display': return ('display','etc.(GFA, DMP..)')
     if g == 'referral': return ('referral','etc.')
+    if m == 'referral': return ('referral','etc.')
     if g == 'unassigned': return ('unassigned','etc.')
     return None
 
@@ -149,7 +150,7 @@ def map_event(s, m):
     if s in ('chatgpt.com','gemini.google.com'): return ('referral','ai')
     if s in ('accounts.google.com','mail.google.com'): return ('direct','direct')
     if m == 'referral': return ('referral','etc.')
-    if m in ('ebook','ebook2'): return ('unassigned','stibee')
+    if s == 'stibee' or m in ('ebook','ebook2'): return ('unassigned','stibee')
     return None
 
 stage_map = {
@@ -186,7 +187,10 @@ for row in list(csv.reader(io.StringIO(read_euckr(_vis_path))))[1:]:
     try: n = int(row[3].strip())
     except: continue
     r = map_visitor(row[0],row[1],row[2])
-    if r and r[0]+'|'+r[1] in totals: totals[r[0]+'|'+r[1]]['v'] += n
+    if not r:
+        print(f"[미분류→unassigned/etc.] visitors: 구분={row[0].strip()} 소스={row[1].strip()} 매체={row[2].strip()} ({n}명)")
+        r = ('unassigned','etc.')
+    if r[0]+'|'+r[1] in totals: totals[r[0]+'|'+r[1]]['v'] += n
 
 _ev_path = f'{_latest_folder}/events.csv'
 if not _os.path.exists(_ev_path): _ev_path = 'data/events.csv'
@@ -198,7 +202,10 @@ for row in list(csv.reader(io.StringIO(read_euckr(_ev_path))))[1:]:
     st = stage_map.get(row[0].strip())
     if not st: continue
     r = map_event(row[1],row[2])
-    if r and r[0]+'|'+r[1] in totals: totals[r[0]+'|'+r[1]][st] += n
+    if not r:
+        print(f"[미분류→unassigned/etc.] events: 소스={row[1].strip()} 매체={row[2].strip()} 이벤트={row[0].strip()} ({n}명)")
+        r = ('unassigned','etc.')
+    if r[0]+'|'+r[1] in totals: totals[r[0]+'|'+r[1]][st] += n
 
 # ── Metabase xlsx
 all_month_su   = {}
