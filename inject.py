@@ -5,7 +5,7 @@ from datetime import datetime, date, timedelta
 def get_week_ranges(year, month):
     """1주차: 1일~첫 수요일, 단 3일 이하면 다음 수요일까지 연장"""
     d = date(year, month, 1)
-    while d.weekday() != 2:  # 첫 수요일 
+    while d.weekday() != 2:  # 첫 수요일
         d += timedelta(days=1)
     first_wed = d.day
     last_day = calendar.monthrange(year, month)[1]
@@ -117,6 +117,7 @@ def map_visitor(g, s, m):
     if g == 'organic search' and s == 'google': return ('organic search','google')
     if g == 'organic search' and ('naver' in s or s in ('m.naver.com','m.search.naver.com')): return ('organic search','naver')
     if g == 'organic search' and s == 'bing': return ('organic search','etc.(bing)')
+    if 'facebook' in s: return ('SNS','facebook / linkedin')
     if s in ('inblog','blog','charlla_inblog','blog.naver.com','m.blog.naver.com','blog.catenoid.net','naverblog'): return ('unassigned','blog')
     if g == 'organic social': return ('unassigned','blog')
     if s == 'iboss': return ('unassigned','iboss')
@@ -141,6 +142,7 @@ def map_event(s, m):
     if s == 'google' and m == 'cpc': return ('paid search','google')
     if s == 'naver' and m == 'cpc': return ('paid search','naver')
     if s in ('ig','instagram'): return ('paid search','instagram')
+    if 'facebook' in s: return ('SNS','facebook / linkedin')
     if s == 'google' and m == 'organic': return ('organic search','google')
     if ('naver' in s or s == 'm.search.naver.com') and m in ('organic','referral'): return ('organic search','naver')
     if s == 'bing' and m == 'organic': return ('organic search','etc.(bing)')
