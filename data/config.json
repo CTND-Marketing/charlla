@@ -1,7 +1,7 @@
 {
   "ga4Cumulative": [
     85,
-    0,
+    85,
     0,
     0
   ],
@@ -1635,7 +1635,7 @@
       ]
     },
     "2026-07": {
-      "lastUpdated": "2026-07-08",
+      "lastUpdated": "2026-07-15",
       "totalV": 2288,
       "totalSu": 85,
       "ga4Cvr": 3.72,
@@ -1669,13 +1669,13 @@
       ],
       "weekGa4": [
         85,
-        null,
+        0,
         null,
         null
       ],
       "weekMb": [
         82,
-        null,
+        0,
         null,
         null
       ],
@@ -2038,7 +2038,7 @@
       "totalPo": 207,
       "ga4Cumulative": [
         85,
-        0,
+        85,
         0,
         0
       ]
