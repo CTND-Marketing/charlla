@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="ko"><head>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.13/html-to-image.min.js" integrity="sha512-iZ2ORl595Wx6miw+GuadDet4WQbdSWS3JLMoNfY8cRGoEFy6oT3G9IbcrBeL6AfkgpA51ETt/faX6yLV+/gFJg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -1396,8 +1397,8 @@ function updateDashboard() {
       { name:'검색/배너광고', color:'#3b82f6', fn: r => r.cat==='paid search' || r.name==='GDN banner' },
       { name:'직접 유입',     color:'#10b981', fn: r => r.cat==='direct' },
       { name:'카페24',        color:'#f59e0b', fn: r => r.name==='cafe24 (ad)' || r.name==='CAFE24 banner' },
-      { name:'자연유입',      color:'#06b6d4', fn: r => r.cat==='organic search' || r.name==='blog' || r.name==='ai' },
-      { name:'기타',          color:'#cbd5e1', fn: r => (r.cat==='unassigned'||r.cat==='SNS') || (r.cat==='referral' && r.name!=='cafe24 (ad)') || (r.cat==='display' && r.name!=='GDN banner') },
+      { name:'자연유입',      color:'#06b6d4', fn: r => r.cat==='organic search' || r.name==='blog' || r.name==='ai' || r.name==='stibee' },
+      { name:'기타',          color:'#cbd5e1', fn: r => (r.cat==='unassigned' && r.name!=='stibee' && r.name!=='blog')||r.cat==='SNS' || (r.cat==='referral' && r.name!=='cafe24 (ad)' && r.name!=='ai') || (r.cat==='display' && r.name!=='GDN banner') },
     ];
     const newCvrSorted = chanDefs.map(def => {
       const rows = allR2.filter(def.fn);
@@ -1422,8 +1423,8 @@ function updateDashboard() {
       { label:'검색/배너광고', fn: r => r.cat==='paid search' || r.name==='GDN banner' },
       { label:'직접 유입',     fn: r => r.cat==='direct' },
       { label:'카페24',        fn: r => r.name==='cafe24 (ad)' || r.name==='CAFE24 banner' },
-      { label:'자연유입',      fn: r => r.cat==='organic search' || r.name==='blog' || r.name==='ai' },
-      { label:'기타',          fn: r => (r.cat==='unassigned'||r.cat==='SNS') || (r.cat==='referral' && r.name!=='cafe24 (ad)') || (r.cat==='display' && r.name!=='GDN banner') },
+      { label:'자연유입',      fn: r => r.cat==='organic search' || r.name==='blog' || r.name==='ai' || r.name==='stibee' },
+      { label:'기타',          fn: r => (r.cat==='unassigned' && r.name!=='stibee' && r.name!=='blog')||r.cat==='SNS' || (r.cat==='referral' && r.name!=='cafe24 (ad)' && r.name!=='ai') || (r.cat==='display' && r.name!=='GDN banner') },
     ];
     chanDefs3.forEach(def => {
       const su  = allR3.filter(def.fn).reduce((s,r)=>s+r.su, 0);
