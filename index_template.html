@@ -627,29 +627,35 @@ window.weeklyAprilChartRef = new Chart(document.getElementById('weeklyAprilChart
   },
   plugins:[{
     id:'weeklyLabels',
-    afterDatasetDraw(chart, args) {
-      if (args.index !== 1 && args.index !== 2) return;
+    afterDatasetsDraw(chart) {
       const {ctx} = chart;
-      const ds = chart.data.datasets[args.index];
-      // index 1 = MB(초록) → 선 위, index 2 = GA4(보라) → 선 아래
-      const isMB = args.index === 1;
-      const color = isMB ? COLOR_MB : COLOR_GA;
-      chart.getDatasetMeta(args.index).data.forEach((pt, i) => {
-        const val = ds.data[i];
-        if (val == null) return;
-        ctx.save();
-        ctx.font = 'bold 11px Pretendard, sans-serif';
-        ctx.fillStyle = color;
-        ctx.textAlign = 'center';
-        if (isMB) {
-          ctx.textBaseline = 'bottom';
-          ctx.fillText(val + '명', pt.x, pt.y - 14);
-        } else {
-          ctx.textBaseline = 'top';
-          ctx.fillText(val + '명', pt.x, pt.y + 14);
+      const mbMeta = chart.getDatasetMeta(1), gaMeta = chart.getDatasetMeta(2);
+      const mbData = chart.data.datasets[1].data, gaData = chart.data.datasets[2].data;
+      for (let i = 0; i < mbData.length; i++) {
+        const mbVal = mbData[i], gaVal = gaData[i];
+        if (mbVal == null && gaVal == null) continue;
+        const mbPt = mbMeta.data[i], gaPt = gaMeta.data[i];
+        // 화면상 더 위(픽셀 y가 작은 쪽)에 있는 라인의 라벨을 점 위로, 아래쪽 라인은 점 아래로
+        const mbIsHigher = gaVal == null || (mbVal != null && mbPt.y <= gaPt.y);
+        if (mbVal != null) {
+          ctx.save();
+          ctx.font = 'bold 11px Pretendard, sans-serif';
+          ctx.fillStyle = COLOR_MB;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = mbIsHigher ? 'bottom' : 'top';
+          ctx.fillText(mbVal + '명', mbPt.x, mbPt.y + (mbIsHigher ? -14 : 14));
+          ctx.restore();
         }
-        ctx.restore();
-      });
+        if (gaVal != null) {
+          ctx.save();
+          ctx.font = 'bold 11px Pretendard, sans-serif';
+          ctx.fillStyle = COLOR_GA;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = mbIsHigher ? 'top' : 'bottom';
+          ctx.fillText(gaVal + '명', gaPt.x, gaPt.y + (mbIsHigher ? 14 : -14));
+          ctx.restore();
+        }
+      }
     }
   }]
 });
@@ -1192,7 +1198,8 @@ function mapVisitorRow(구분, 소스, 매체) {
   if (g === 'organic search' && s === 'google') return { cat: 'organic search', row: 'google' };
   if (g === 'organic search' && (s.includes('naver') || s === 'm.naver.com' || s === 'm.search.naver.com')) return { cat: 'organic search', row: 'naver' };
   if (g === 'organic search' && s === 'bing') return { cat: 'organic search', row: 'etc.(bing)' };
-  if (['inblog','blog','charlla_inblog','blog.naver.com','m.blog.naver.com','blog.catenoid.net'].includes(s)) return { cat: 'unassigned', row: 'blog' };
+  if (s.includes('facebook')) return { cat: 'SNS', row: 'facebook / linkedin' };
+  if (['inblog','blog','charlla_inblog','blog.naver.com','m.blog.naver.com','blog.catenoid.net','naverblog'].includes(s)) return { cat: 'unassigned', row: 'blog' };
   if (g === 'organic social') return { cat: 'unassigned', row: 'blog' };
   if (s === 'iboss') return { cat: 'unassigned', row: 'iboss' };
   // stibee: ebook, ebook2 모두 포함
@@ -1226,7 +1233,8 @@ function mapEventRow(소스, 매체) {
   if ((s.includes('naver') || s === 'm.search.naver.com') && m === 'referral') return { cat: 'organic search', row: 'naver' };
   if (s.includes('naver') && m === 'organic') return { cat: 'organic search', row: 'naver' };
   if (s === 'bing' && m === 'organic') return { cat: 'organic search', row: 'etc.(bing)' };
-  if (['blog.naver.com','m.blog.naver.com','inblog'].includes(s)) return { cat: 'unassigned', row: 'blog' };
+  if (['blog.naver.com','m.blog.naver.com','inblog','naverblog'].includes(s)) return { cat: 'unassigned', row: 'blog' };
+  if (s.includes('facebook')) return { cat: 'SNS', row: 'facebook / linkedin' };
   if (s === 'gdn' || s === 'viimstudio') return { cat: 'display', row: 'GDN banner' };
   if (s === '(data not available)') return { cat: 'display', row: 'GDN banner' };
   if (s.includes('cafe24') && (m === 'referral' || m === 'banner' || m === 'floating_banner')) return { cat: 'referral', row: 'cafe24 (ad)' };
@@ -1234,7 +1242,7 @@ function mapEventRow(소스, 매체) {
   if (s === 'accounts.google.com' && m === 'referral') return { cat: 'direct', row: 'direct' };
   if (s === 'mail.google.com' && m === 'referral') return { cat: 'direct', row: 'direct' };
   if (m === 'referral') return { cat: 'referral', row: 'etc.' };
-  if (m === 'ebook') return { cat: 'unassigned', row: 'stibee' };
+  if (s === 'stibee' || m === 'ebook' || m === 'ebook2') return { cat: 'unassigned', row: 'stibee' };
   return null;
 }
 const freetrialEvents = new Set([
