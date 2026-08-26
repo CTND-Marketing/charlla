@@ -2,7 +2,7 @@
   "ga4Cumulative": [
     58,
     144,
-    0,
+    144,
     0
   ],
   "ga4CumulativeMonth": "2026-08",
@@ -2044,7 +2044,7 @@
       ]
     },
     "2026-08": {
-      "lastUpdated": "2026-08-12",
+      "lastUpdated": "2026-08-19",
       "totalV": 2970,
       "totalSu": 144,
       "ga4Cvr": 4.85,
@@ -2073,19 +2073,19 @@
       "weekV": [
         1272,
         1908,
-        0,
+        7090,
         null
       ],
       "weekGa4": [
         58,
         86,
-        null,
+        0,
         null
       ],
       "weekMb": [
         53,
         77,
-        null,
+        11,
         null
       ],
       "channels": [
@@ -2129,14 +2129,14 @@
         {
           "name": "Google\n검색광고",
           "v": 813,
-          "su": 35,
+          "su": 42,
           "cost": 2600000,
           "color": "#3b82f6"
         },
         {
           "name": "GDN",
           "v": 1126,
-          "su": 31,
+          "su": 51,
           "cost": 1500000,
           "color": "#7c3aed"
         },
@@ -2457,7 +2457,7 @@
       "ga4Cumulative": [
         58,
         144,
-        0,
+        144,
         0
       ]
     }
