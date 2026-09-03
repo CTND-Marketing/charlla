@@ -1874,6 +1874,12 @@ function switchMonth(key) {
       setEl('kpi_cost_'+k2, cost2+'만');
       setEl('kpi_cvr_'+k2,  cvr2+'%');
       setEl('kpi_cpa_'+k2,  cpa2+'만');
+      // 전역 adEff 배열 동기화 (cpaLbl 플러그인, 버블차트 툴팁이 이 배열을 직접 참조하므로 필수)
+      if (typeof adEff !== 'undefined' && adEff[i]) {
+        adEff[i].v = ae.v; adEff[i].su = ae.su; adEff[i].cost = ae.cost;
+        adEff[i].cpa = ae.su ? Math.round(ae.cost/ae.su) : 0;
+        adEff[i].cvr = ae.v ? +(ae.su/ae.v*100).toFixed(2) : 0;
+      }
     });
     if (typeof adCpaChartRef !== 'undefined' && adCpaChartRef) {
       adCpaChartRef.data.datasets[0].data = d.adEff.map(function(ae){return ae.su?Math.round(ae.cost/ae.su):0;});
