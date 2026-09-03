@@ -41,14 +41,29 @@ print(f"현재 월 폴더: {_latest_folder}")
 
 # ── manual.json 읽기 (현재 월 폴더 우선, 없으면 data/ 루트)
 manual = {}
+_manual_loaded = False
+_manual_errors = []
 for _mp in [f'{_latest_folder}/manual.json', 'data/manual.json']:
+    if not _os.path.exists(_mp):
+        continue
     try:
         with open(_mp, encoding='utf-8') as f:
             manual = json.load(f)
         print(f"manual.json: {_mp}")
+        _manual_loaded = True
         break
-    except:
-        pass
+    except json.JSONDecodeError as e:
+        _manual_errors.append(f"{_mp}: {e}")
+
+if not _manual_loaded:
+    if _manual_errors:
+        print("!! manual.json 파싱 실패 — JSON 문법 오류가 있습니다 !!")
+        for err in _manual_errors:
+            print("   " + err)
+        print("!! 모든 manual.json 값이 무시되고 기본값(0)으로 처리됩니다 !!")
+        raise SystemExit(1)
+    else:
+        print("!! manual.json 파일을 찾을 수 없습니다 (기본값 0으로 진행) !!")
 
 # 날짜: manual.json 우선, 없으면 폴더명에서 추출
 if manual.get('날짜'):
@@ -730,6 +745,12 @@ function switchMonth(key) {{
       setEl('kpi_cost_'+k2, cost2+'만');
       setEl('kpi_cvr_'+k2,  cvr2+'%');
       setEl('kpi_cpa_'+k2,  cpa2+'만');
+      // 전역 adEff 배열 동기화 (cpaLbl 플러그인, 버블차트 툴팁이 이 배열을 직접 참조하므로 필수)
+      if (typeof adEff !== 'undefined' && adEff[i]) {{
+        adEff[i].v = ae.v; adEff[i].su = ae.su; adEff[i].cost = ae.cost;
+        adEff[i].cpa = ae.su ? Math.round(ae.cost/ae.su) : 0;
+        adEff[i].cvr = ae.v ? +(ae.su/ae.v*100).toFixed(2) : 0;
+      }}
     }});
     if (typeof adCpaChartRef !== 'undefined' && adCpaChartRef) {{
       adCpaChartRef.data.datasets[0].data = d.adEff.map(function(ae){{return ae.su?Math.round(ae.cost/ae.su):0;}});
