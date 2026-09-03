@@ -1140,10 +1140,12 @@ function loadFromLocal() {
   } catch(e) { console.error('localStorage 복원 실패:', e); return false; }
 }
 
-// 파일 열릴 때 자동 복원
-window.addEventListener('load', function() {
-  loadFromLocal();
-});
+// 자동 복원 비활성화 — inject.py가 매번 새로 계산한 값이 항상 최신 진실이어야 하므로,
+// 브라우저에 남아있던 예전 localStorage 값으로 덮어쓰지 않는다.
+// (필요 시 수동 저장/복원이 필요하면 loadFromLocal()을 직접 호출)
+// window.addEventListener('load', function() {
+//   loadFromLocal();
+// });
 
 // ── 수동 저장 버튼
 function manualSave() {
