@@ -224,6 +224,14 @@ for row in list(csv.reader(io.StringIO(read_euckr(_ev_path))))[1:]:
         r = ('unassigned','etc.')
     if r[0]+'|'+r[1] in totals: totals[r[0]+'|'+r[1]][st] += n
 
+# ── 카페24 광고 가입수 수동 입력 → raw data의 referral > cafe24 (ad) 회원가입에 반영
+# manual.json "광고_가입수" → "카페24" 값이 있으면 raw data 집계값 대신 그 값을 사용
+_cafe24_manual_su = ad_su_manual.get('cafe24')
+if _cafe24_manual_su is not None:
+    _k = 'referral|cafe24 (ad)'
+    print(f"카페24 가입수 수동 적용: raw {totals[_k]['su']} → manual {int(_cafe24_manual_su)}")
+    totals[_k]['su'] = int(_cafe24_manual_su)
+
 # ── Metabase xlsx
 all_month_su   = {}
 all_month_paid = {}
