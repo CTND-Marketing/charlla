@@ -1,26 +1,30 @@
 구분,소스,매체,사용자수
-Display,google , cpc,1818
-Paid Search,google , cpc,797
-Direct,(direct) , (none),752
-Organic Search,google , organic,174
-Paid Search,naver , cpc,170
-Cross-network,(data not available),,116
-Organic Search,naver , organic,22
-Display,gdn , banner,19
-Unassigned,BS , brand_search_pc,17
-Unassigned,inblog , blog,17
-Display,cafe24 , banner,15
-Unassigned,charlla_inblog , blog,15
-Referral,catenoid.net , referral,7
-Referral,charllasample.cafe24.com , referral,5
+Display,google , cpc,2343
+Direct,(direct) , (none),969
+Paid Search,google , cpc,952
+Paid Search,naver , cpc,209
+Organic Search,google , organic,208
+Cross-network,(data not available),,131
+Organic Search,naver , organic,28
+Unassigned,charlla_inblog , blog,24
+Unassigned,inblog , blog,24
+Display,gdn , banner,23
+Display,cafe24 , banner,21
+Unassigned,BS , brand_search_pc,21
+Referral,catenoid.net , referral,12
+AI Assistant,chatgpt.com , ai-assistant,6
+Referral,charllasample.cafe24.com , referral,6
+Organic Search,bing , organic,5
+Organic Search,m.search.naver.com , referral,5
+Organic Search,naver , brand_search_m,5
 Display,viimstudio , banner,4
-Organic Search,bing , organic,4
+Organic Social,instagram , cta,4
 Paid Video,google , cpc,4
-Referral,catenoid.jp , referral,3
+Referral,catenoid.jp , referral,4
+Referral,nsa-aet.sentinel.navercorp.com , referral,3
+Referral,store.cafe24.com , referral,3
 Unassigned,iboss , ebook2610,3
-AI Assistant,chatgpt.com , ai-assistant,2
-Organic Search,m.search.naver.com , referral,2
-Organic Search,naver , brand_search_m,2
+Unassigned,naverblog , blog,3
 Referral,anne2173.cafe24.com , referral,2
 Referral,app.shop-pro.jp , referral,2
 Referral,blog.catenoid.net , referral,2
@@ -29,13 +33,13 @@ Referral,jwg-web.tistory.com , referral,2
 Referral,mail.naver.com , referral,2
 Referral,morenvy.com , referral,2
 Referral,namu.wiki , referral,2
-Referral,nsa-aet.sentinel.navercorp.com , referral,2
-Referral,store.cafe24.com , referral,2
-Unassigned,naverblog , blog,2
+Unassigned,openads , article,2
 AI Assistant,gemini.google.com , ai-assistant,1
 Organic Search,qwant.com , organic,1
+Organic Search,yahoo , organic,1
 Organic Social,facebook.com , referral,1
 Organic Social,ig , social,1
+Organic Social,web.whatsapp.com , referral,1
 Referral,6lueparr0t.github.io , referral,1
 Referral,afterexfil.cafe24.com , referral,1
 Referral,aoyukr.cafe24.com , referral,1
@@ -45,12 +49,16 @@ Referral,app.tana.inc , referral,1
 Referral,approval.office.hiworks.com , referral,1
 Referral,asas2855.cafe24.com , referral,1
 Referral,blackcombatstore.cafe24.com , referral,1
+Referral,br.nate.com , referral,1
+Referral,cgimall.co.kr , referral,1
 Referral,cheriaube.cafe24.com , referral,1
+Referral,defemme.cafe24.com , referral,1
 Referral,dkotc.cafe24.com , referral,1
 Referral,erp.rcpgrp.com , referral,1
 Referral,genother.cafe24.com , referral,1
 Referral,guutitude.cafe24.com , referral,1
 Referral,gw.yonseidairy.com , referral,1
+Referral,happylalla486.cafe24.com , referral,1
 Referral,heulo.cafe24.com , referral,1
 Referral,ksjin1016.cafe24.com , referral,1
 Referral,mail.google.com , referral,1
@@ -70,10 +78,13 @@ Referral,shopserve.estore.jp , referral,1
 Referral,spao.cafe24.com , referral,1
 Referral,stayuyh12.cafe24.com , referral,1
 Referral,support.catenoid.net , referral,1
+Referral,surfwax.com , referral,1
 Referral,taecholife0722.cafe24.com , referral,1
 Referral,teams.public.onecdn.static.microsoft , referral,1
+Referral,ui-deref.de , referral,1
 Referral,urbancarry.cafe24.com , referral,1
 Referral,virstyle.cafe24.com , referral,1
+Unassigned,(not set),,1
 Unassigned,cafe24 , ebook2,1
-Unassigned,openads , article,1
+Unassigned,sitbee , ebook2610,1
 Unassigned,stibee , ebook,1
