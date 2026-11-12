@@ -1,48 +1,68 @@
 구분,소스,매체,사용자수
-Display,google , cpc,462
-Direct,(direct) , (none),249
-Paid Search,google , cpc,198
-Organic Search,google , organic,59
-Cross-network,(data not available),,34
-Paid Search,naver , cpc,31
-Organic Search,naver , organic,12
-Display,gdn , banner,4
-Unassigned,inblog , blog,4
-AI Assistant,chatgpt.com , ai-assistant,3
-Organic Search,m.search.naver.com , referral,3
-Referral,charllasample.cafe24.com , referral,3
-Unassigned,(not set),,3
-Unassigned,BS , brand_search_pc,3
-Display,cafe24 , banner,2
+Display,google , cpc,1102
+Direct,(direct) , (none),555
+Paid Search,google , cpc,411
+Organic Search,google , organic,138
+Paid Search,naver , cpc,123
+Cross-network,(data not available),,85
+Organic Search,naver , organic,29
+Display,gdn , banner,17
+AI Assistant,chatgpt.com , ai-assistant,10
+Referral,charllasample.cafe24.com , referral,10
+Organic Search,m.search.naver.com , referral,9
+Referral,aocr.org , referral,8
+Unassigned,inblog , blog,7
+Display,cafe24 , banner,6
+Unassigned,sitbee , ebook2610,6
+AI Assistant,gemini.google.com , ai-assistant,5
+Organic Search,naver , brand_search_m,4
+Unassigned,BS , brand_search_pc,4
+Organic Search,bing , organic,3
+Referral,catenoid.net , referral,3
 Display,viimstudio , banner,2
-Organic Search,bing , organic,2
 Organic Social,ig , social,2
+Paid Video,google , cpc,2
 Referral,br.nate.com , referral,2
-Referral,catenoid.net , referral,2
+Referral,ui-deref.de , referral,2
 Unassigned,charlla_inblog , blog,2
-Unassigned,sitbee , ebook2610,2
-AI Assistant,gemini.google.com , ai-assistant,1
-Organic Search,naver , brand_search_m,1
+Unassigned,stibee , newsletter,2
+Display,nhn , banner,1
+Email,stibee , email,1
+Referral,anne2173.cafe24.com , referral,1
 Referral,app.notion.com , referral,1
+Referral,approval.office.hiworks.com , referral,1
 Referral,asas2855.cafe24.com , referral,1
+Referral,blog.catenoid.net , referral,1
 Referral,catenoid.jp , referral,1
 Referral,cheriaube.cafe24.com , referral,1
+Referral,curelife7676.cafe24.com , referral,1
 Referral,dkotc.cafe24.com , referral,1
 Referral,genother.cafe24.com , referral,1
+Referral,googleadservices.com , referral,1
 Referral,gw.yonseidairy.com , referral,1
+Referral,happylalla486.cafe24.com , referral,1
 Referral,hoogswim.cafe24.com , referral,1
 Referral,jwg-web.tistory.com , referral,1
+Referral,ksjin1016.cafe24.com , referral,1
 Referral,mail.yahoo.com , referral,1
 Referral,ming4991.cafe24.com , referral,1
 Referral,miyawa.cafe24.com , referral,1
 Referral,morenvy.com , referral,1
+Referral,myhomesick.cafe24.com , referral,1
 Referral,namu.wiki , referral,1
 Referral,naya3787.cafe24.com , referral,1
 Referral,osil.cafe24.com , referral,1
 Referral,pien0814.cafe24.com , referral,1
 Referral,shopserve.estore.jp , referral,1
+Referral,stayuyh12.cafe24.com , referral,1
+Referral,store.cafe24.com , referral,1
+Referral,support.catenoid.net , referral,1
 Referral,thanksmomshop.cafe24.com , referral,1
-Referral,ui-deref.de , referral,1
+Referral,urlscanner.mailmarshal.cloud , referral,1
 Referral,vcservice.cafe24.com , referral,1
+Referral,virstyle.cafe24.com , referral,1
 Referral,vshu.cafe24.com , referral,1
+Unassigned,(not set),,1
+Unassigned,gdn , ebook2610,1
 Unassigned,iboss , ebook2,1
+Unassigned,nhn_medium=banner , (not set),1
