@@ -224,13 +224,17 @@ for row in list(csv.reader(io.StringIO(read_euckr(_ev_path))))[1:]:
         r = ('unassigned','etc.')
     if r[0]+'|'+r[1] in totals: totals[r[0]+'|'+r[1]][st] += n
 
-# ── 카페24 광고 가입수 수동 입력 → raw data의 referral > cafe24 (ad) 회원가입에 반영
-# manual.json "광고_가입수" → "카페24" 값이 있으면 raw data 집계값 대신 그 값을 사용
-_cafe24_manual_su = ad_su_manual.get('cafe24')
-if _cafe24_manual_su is not None:
-    _k = 'referral|cafe24 (ad)'
-    print(f"카페24 가입수 수동 적용: raw {totals[_k]['su']} → manual {int(_cafe24_manual_su)}")
-    totals[_k]['su'] = int(_cafe24_manual_su)
+# ── 카페24 광고 가입수 수동 입력 → direct에서 같은 수만큼 빼서 cafe24 (ad)로 이동 (총 가입수는 변하지 않음)
+_cafe24_move = ad_su_manual.get('cafe24')
+if _cafe24_move is not None and int(_cafe24_move) > 0:
+    _n = int(_cafe24_move)
+    _direct_su = totals['direct|direct']['su']
+    if _direct_su < _n:
+        print(f"!! 카페24 수동값({_n})이 direct 가입수({_direct_su})보다 커서 {_direct_su}명만 이동합니다 !!")
+        _n = _direct_su
+    totals['direct|direct']['su']          -= _n
+    totals['referral|cafe24 (ad)']['su']   += _n
+    print(f"카페24 가입수 이동: direct -{_n} → cafe24 (ad) +{_n}")
 
 # ── Metabase xlsx
 all_month_su   = {}
