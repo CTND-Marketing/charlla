@@ -1,56 +1,63 @@
 구분,소스,매체,사용자수
-Display,google , cpc,1610
-Direct,(direct) , (none),835
-Paid Search,google , cpc,618
-Paid Search,naver , cpc,221
-Organic Search,google , organic,211
-Cross-network,(data not available),,112
-Display,gdn , banner,48
-Organic Search,naver , organic,44
-Organic Search,m.search.naver.com , referral,18
-AI Assistant,chatgpt.com , ai-assistant,16
-Referral,charllasample.cafe24.com , referral,13
-Display,cafe24 , banner,8
+Display,google , cpc,1781
+Direct,(direct) , (none),1102
+Paid Search,google , cpc,729
+Paid Search,naver , cpc,316
+Organic Search,google , organic,281
+Cross-network,(data not available),,129
+Organic Search,naver , organic,58
+Display,gdn , banner,57
+Organic Search,m.search.naver.com , referral,20
+AI Assistant,chatgpt.com , ai-assistant,19
+Referral,charllasample.cafe24.com , referral,17
+Display,cafe24 , banner,16
+Organic Social,facebook.com , referral,11
+Unassigned,inblog , blog,10
+Organic Search,naver , brand_search_m,9
 Referral,aocr.org , referral,8
-Unassigned,inblog , blog,8
-Unassigned,sitbee , ebook2610,7
-Organic Search,naver , brand_search_m,6
-Organic Social,facebook.com , referral,6
-Referral,catenoid.net , referral,6
-Unassigned,BS , brand_search_pc,6
+Unassigned,BS , brand_search_pc,8
+Unassigned,sitbee , ebook2610,8
+Display,viimstudio , banner,7
+Referral,catenoid.net , referral,7
 AI Assistant,gemini.google.com , ai-assistant,5
-Display,viimstudio , banner,4
+Organic Social,m.facebook.com , referral,5
 Organic Search,bing , organic,4
 Referral,br.nate.com , referral,3
+Referral,store.cafe24.com , referral,3
+Unassigned,homepage , ebook2610,3
 Unassigned,nhn_medium=banner , (not set),3
 Organic Social,blog.naver.com , referral,2
 Organic Social,ig , social,2
-Organic Social,m.facebook.com , referral,2
 Paid Video,google , cpc,2
+Referral,anne2173.cafe24.com , referral,2
+Referral,big2love.cafe24.com , referral,2
+Referral,hojaefs001.cafe24.com , referral,2
 Referral,ui-deref.de , referral,2
+Unassigned,cafe24 , ebook2610,2
 Unassigned,charlla_inblog , blog,2
-Unassigned,homepage , ebook2610,2
-Unassigned,nhn_medium=banner , (not set),2
 Unassigned,stibee , newsletter,2
 Display,nhn , banner,1
 Email,stibee , email,1
+Organic Social,l.facebook.com , referral,1
 Organic Social,m.blog.naver.com , referral,1
 Paid Shopping,naver , cpc,1
-Referral,anne2173.cafe24.com , referral,1
 Referral,app.notion.com , referral,1
 Referral,app.shop-pro.jp , referral,1
 Referral,approval.office.hiworks.com , referral,1
 Referral,asas2855.cafe24.com , referral,1
-Referral,big2love.cafe24.com , referral,1
 Referral,blog.catenoid.net , referral,1
+Referral,bluegrain.cafe24.com , referral,1
 Referral,catenoid.jp , referral,1
 Referral,cheriaube.cafe24.com , referral,1
+Referral,choco27.cafe24.com , referral,1
 Referral,curelife7676.cafe24.com , referral,1
 Referral,dkotc.cafe24.com , referral,1
+Referral,doubao.com , referral,1
 Referral,future-shop.jp , referral,1
 Referral,genother.cafe24.com , referral,1
 Referral,googleadservices.com , referral,1
 Referral,guessunderwear.cafe24.com , referral,1
+Referral,gw.hlb-group.com , referral,1
 Referral,gw.yonseidairy.com , referral,1
 Referral,happylalla486.cafe24.com , referral,1
 Referral,hoogswim.cafe24.com , referral,1
@@ -66,16 +73,18 @@ Referral,morenvy.com , referral,1
 Referral,myhomesick.cafe24.com , referral,1
 Referral,namu.wiki , referral,1
 Referral,naya3787.cafe24.com , referral,1
+Referral,nontidy.cafe24.com , referral,1
 Referral,note.com , referral,1
 Referral,osil.cafe24.com , referral,1
 Referral,overthebrand.cafe24.com , referral,1
 Referral,pien0814.cafe24.com , referral,1
+Referral,pinksaltcloset.cafe24.com , referral,1
 Referral,saraq0123.cafe24.com , referral,1
 Referral,shopserve.estore.jp , referral,1
 Referral,statics.teams.cdn.office.net , referral,1
 Referral,stayuyh12.cafe24.com , referral,1
-Referral,store.cafe24.com , referral,1
 Referral,support.catenoid.net , referral,1
+Referral,teams.public.onecdn.static.microsoft , referral,1
 Referral,thanksmomshop.cafe24.com , referral,1
 Referral,urlscanner.mailmarshal.cloud , referral,1
 Referral,vcservice.cafe24.com , referral,1
